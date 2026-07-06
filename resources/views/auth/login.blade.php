@@ -106,7 +106,10 @@
             </div>
             <div class="mb-4">
                 <label for="password" class="form-label text-muted small">Kata Sandi</label>
-                <input type="password" name="password" id="password" class="form-control form-control-custom" placeholder="••••••••" required>
+                <div class="position-relative">
+                    <input type="password" name="password" id="password" class="form-control form-control-custom pe-5" placeholder="••••••••" required>
+                    <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-muted" id="togglePassword" style="cursor: pointer;"></i>
+                </div>
             </div>
             <div class="mb-3 d-flex justify-content-between align-items-center">
                 <div class="form-check">
@@ -134,6 +137,14 @@
             document.getElementById('email').value = email;
             document.getElementById('password').value = 'password';
         }
+
+        document.getElementById('togglePassword').addEventListener('click', function (e) {
+            const password = document.getElementById('password');
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('bi-eye');
+            this.classList.toggle('bi-eye-slash');
+        });
     </script>
 </body>
 </html>

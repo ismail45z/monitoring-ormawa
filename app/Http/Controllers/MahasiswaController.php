@@ -45,7 +45,7 @@ class MahasiswaController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'role' => 'mahasiswa_kip',
-                'ormawa_id' => null, // Not a board member
+                'ormawa_id' => $request->ormawa_id, // Save ormawa_id here too for consistency
             ]);
 
             Mahasiswa::create([
@@ -95,6 +95,7 @@ class MahasiswaController extends Controller
             $userData = [
                 'nama' => $request->nama,
                 'email' => $request->email,
+                'ormawa_id' => $request->ormawa_id,
             ];
 
             if ($request->filled('password')) {

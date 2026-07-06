@@ -12,7 +12,8 @@
                     <th>Nama Mahasiswa</th>
                     <th>NIM</th>
                     <th>Kegiatan</th>
-                    <th>Tanggal</th>
+                    <th>Tanggal Kegiatan</th>
+                    <th>Waktu Pencatatan</th>
                     <th>Pilihan Kehadiran</th>
                     <th>Keterangan Mandiri</th>
                     <th>Aksi</th>
@@ -25,6 +26,10 @@
                         <td>{{ $kh->mahasiswa->nim }}</td>
                         <td>{{ $kh->kegiatan->nama_kegiatan }}</td>
                         <td>{{ \Carbon\Carbon::parse($kh->kegiatan->tanggal)->translatedFormat('d M Y') }}</td>
+                        <td>
+                            <small class="text-muted d-block">Mencatat pada:</small>
+                            {{ $kh->created_at->translatedFormat('d M Y, H:i') }}
+                        </td>
                         <td>
                             @if($kh->status_kehadiran == 'Hadir')
                                 <span class="badge bg-success">Hadir</span>

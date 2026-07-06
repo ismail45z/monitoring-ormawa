@@ -27,7 +27,12 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Kata Sandi</label>
-            <input type="password" name="password" class="form-control" required>
+            <div class="input-group">
+                <input type="password" name="password" id="password" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
         </div>
         <div class="mb-3">
             <label class="form-label">Peran (Role)</label>
@@ -75,6 +80,19 @@
 
         roleSelect.addEventListener('change', toggleOrmawa);
         toggleOrmawa(); // Trigger initially
+
+        // Toggle password visibility
+        const togglePassword = document.getElementById('togglePassword');
+        if (togglePassword) {
+            togglePassword.addEventListener('click', function () {
+                const password = document.getElementById('password');
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                const icon = this.querySelector('i');
+                icon.classList.toggle('bi-eye');
+                icon.classList.toggle('bi-eye-slash');
+            });
+        }
     });
 </script>
 @endsection
