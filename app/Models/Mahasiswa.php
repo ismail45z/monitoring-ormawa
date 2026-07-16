@@ -6,12 +6,15 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use OwenIt\Auditing\Contracts\Auditable;
 
-#[Fillable(['pengguna_id', 'nim', 'no_kip', 'jurusan', 'prodi', 'angkatan', 'status_kip', 'ormawa_id'])]
-class Mahasiswa extends Model
+#[Fillable(['pengguna_id', 'nim', 'no_kip', 'jurusan', 'prodi', 'angkatan', 'status_kip', 'bukti_kip'])]
+class Mahasiswa extends Model implements Auditable
 {
     use HasFactory;
+    use \OwenIt\Auditing\Auditable;
 
     /**
      * The table associated with the model.
@@ -29,11 +32,12 @@ class Mahasiswa extends Model
     }
 
     /**
-     * Get the ormawa this student is registered in.
+     * Get all ormawas this student is registered in (Many-to-Many).
      */
-    public function ormawa(): BelongsTo
+    public function ormawas(): BelongsToMany
     {
-        return $this->belongsTo(Ormawa::class, 'ormawa_id');
+        return $this->belongsToMany(Ormawa::class, 'mahasiswa_ormawa', 'mahasiswa_id', 'ormawa_id')
+            ->withTimestamps();
     }
 
     /**

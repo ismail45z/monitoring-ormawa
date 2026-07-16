@@ -7,11 +7,6 @@
         <h3 class="fw-bold mb-0">Dashboard Mahasiswa KIP-K</h3>
         <p class="text-muted mb-0">Selamat datang kembali, {{ $mahasiswa ? $mahasiswa->pengguna->nama : Auth::user()->nama }}</p>
     </div>
-    @if($mahasiswa)
-        <span class="{{ $statusKeaktifan == 'AKTIF' ? 'badge-custom-aktif' : 'badge-custom-tidak' }} text-uppercase fw-bold">
-            Status Keaktifan: {{ $statusKeaktifan }}
-        </span>
-    @endif
 </div>
 
 @if(!$mahasiswa)
@@ -22,17 +17,26 @@
     </div>
 @else
     <div class="row g-4 mb-4">
-        <!-- Attendance Stats Card -->
-        <div class="col-md-4">
-            <div class="card card-custom p-4 text-center h-100 d-flex flex-column justify-content-center">
-                <h6 class="text-muted small text-uppercase">Persentase Kehadiran</h6>
-                <div class="display-3 fw-bold text-primary my-2">{{ $persentase }}%</div>
-                <p class="text-muted small mb-0">Dari seluruh kegiatan yang diselenggarakan oleh Ormawa Anda</p>
+        <!-- Keaktifan Per Ormawa Cards -->
+        @forelse($rekapPerOrmawa as $rekap)
+            <div class="col-md-4">
+                <div class="card card-custom p-4 text-center h-100 d-flex flex-column justify-content-center">
+                    <small class="text-muted text-uppercase fw-bold mb-1">{{ $rekap['ormawa']->nama_ormawa }}</small>
+                    <div class="display-4 fw-bold {{ $rekap['persentase'] >= 60 ? 'text-success' : 'text-danger' }} my-2">{{ $rekap['persentase'] }}</div>
+                    <small class="text-muted mb-2">Poin Keaktifan</small>
+                    <span class="{{ $rekap['statusKeaktifan'] == 'AKTIF' ? 'badge-custom-aktif' : 'badge-custom-tidak' }} text-uppercase fw-semibold">
+                        {{ $rekap['statusKeaktifan'] }}
+                    </span>
+                </div>
             </div>
-        </div>
+        @empty
+            <div class="col-12">
+                <div class="alert alert-info">Anda belum terdaftar di Ormawa manapun.</div>
+            </div>
+        @endforelse
 
         <!-- Student Quick Profile Card -->
-        <div class="col-md-8">
+        <div class="col-md-{{ $rekapPerOrmawa->count() >= 3 ? '12' : (12 - ($rekapPerOrmawa->count() * 4)) }}">
             <div class="card card-custom p-4 h-100">
                 <h5 class="fw-bold mb-3"><i class="bi bi-person-vcard-fill text-primary me-2"></i>Informasi Mahasiswa</h5>
                 <div class="row">
@@ -58,12 +62,44 @@
                     </div>
                     <div class="col-sm-6 mb-0">
                         <small class="text-muted d-block">Organisasi Diikuti</small>
-                        <span class="fw-semibold text-primary">{{ $mahasiswa->ormawa ? $mahasiswa->ormawa->nama_ormawa : 'Tidak Mengikuti' }}</span>
+                        @forelse($mahasiswa->ormawas as $orm)
+                            <span class="badge bg-primary me-1">{{ $orm->nama_ormawa }}</span>
+                        @empty
+                            <span class="text-muted">Tidak Mengikuti</span>
+                        @endforelse
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Pengumuman Ormawa -->
+    @if(isset($pengumuman) && $pengumuman->count() > 0)
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-megaphone-fill text-primary me-2"></i>Pengumuman Ormawa</h5>
+                    <div class="list-group list-group-flush">
+                        @foreach($pengumuman as $p)
+                            <div class="list-group-item px-0 py-3 border-bottom">
+                                <div class="d-flex w-100 justify-content-between mb-1">
+                                    <h6 class="mb-0 fw-bold">{{ $p->judul }}</h6>
+                                    <small class="text-muted">{{ $p->created_at->diffForHumans() }}</small>
+                                </div>
+                                <span class="badge bg-primary mb-2">{{ $p->ormawa->nama_ormawa }}</span>
+                                <p class="mb-2 text-muted" style="white-space: pre-line;">{{ $p->isi }}</p>
+                                @if($p->lampiran)
+                                    <div class="mt-2 text-center text-md-start">
+                                        <img src="{{ asset('storage/' . $p->lampiran) }}" alt="Lampiran Pengumuman" class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: contain;">
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Recent Presence Timeline -->
     <div class="card card-custom p-4">

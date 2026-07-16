@@ -3,8 +3,14 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold mb-0">Dashboard Admin</h3>
-    <span class="badge bg-danger px-3 py-2 text-uppercase">Admin Control Panel</span>
+    <div>
+        <h3 class="fw-bold mb-0">Dashboard Admin</h3>
+        <span class="badge bg-danger px-3 py-2 mt-2 text-uppercase">Admin Control Panel</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ route('admin.export.pdf') }}" class="btn btn-outline-danger shadow-sm"><i class="bi bi-file-earmark-pdf-fill me-1"></i> Laporan PDF</a>
+        <a href="{{ route('admin.export.excel') }}" class="btn btn-outline-success shadow-sm"><i class="bi bi-file-earmark-excel-fill me-1"></i> Laporan Excel</a>
+    </div>
 </div>
 
 <!-- Statistics Cards -->
@@ -79,7 +85,17 @@
                                 <td>
                                     <span class="badge bg-secondary text-uppercase">{{ str_replace('_', ' ', $u->role) }}</span>
                                 </td>
-                                <td>{{ $u->ormawa ? $u->ormawa->nama_ormawa : '-' }}</td>
+                                <td>
+                                    @if($u->role === 'pengurus_ormawa' && $u->ormawa)
+                                        <span class="badge rounded-pill" style="background:rgba(99,102,241,0.15);color:#818cf8;font-weight:500;">{{ $u->ormawa->nama_ormawa }}</span>
+                                    @elseif($u->role === 'mahasiswa_kip' && $u->mahasiswa && $u->mahasiswa->ormawas->count() > 0)
+                                        @foreach($u->mahasiswa->ormawas as $orm)
+                                            <span class="badge rounded-pill mb-1" style="background:rgba(16,185,129,0.15);color:#10b981;font-weight:500;">{{ $orm->nama_ormawa }}</span>
+                                        @endforeach
+                                    @else
+                                        <span class="text-muted small">-</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>

@@ -8,11 +8,32 @@
         <a href="{{ route('pengurus.kegiatan.create') }}" class="btn btn-gradient-primary rounded-pill"><i class="bi bi-plus-circle me-1"></i> Buat Kegiatan</a>
     </div>
 
+    <!-- Filter & Search Form -->
+    <form action="{{ route('pengurus.kegiatan.index') }}" method="GET" class="mb-4 row g-2">
+        <div class="col-md-4">
+            <input type="text" name="search" class="form-control" placeholder="Cari Nama Kegiatan..." value="{{ request('search') }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" name="tanggal_mulai" class="form-control" placeholder="Tgl Mulai" value="{{ request('tanggal_mulai') }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" name="tanggal_selesai" class="form-control" placeholder="Tgl Selesai" value="{{ request('tanggal_selesai') }}">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit"><i class="bi bi-filter"></i> Filter</button>
+            @if(request('search') || request('tanggal_mulai') || request('tanggal_selesai'))
+                <a href="{{ route('pengurus.kegiatan.index') }}" class="btn btn-sm btn-outline-secondary w-100 mt-1">Reset</a>
+            @endif
+        </div>
+    </form>
+
     <div class="table-responsive">
-        <table class="table align-middle datatable">
+        <table class="table align-middle">
             <thead>
                 <tr>
                     <th>Nama Kegiatan</th>
+                    <th>Periode</th>
+                    <th>Bobot (Poin)</th>
                     <th>Tanggal</th>
                     <th>Waktu</th>
                     <th>Tempat</th>
@@ -21,9 +42,11 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($kegiatans as $kegiatan)
+                @forelse($kegiatans as $kegiatan)
                     <tr>
                         <td><span class="fw-semibold">{{ $kegiatan->nama_kegiatan }}</span></td>
+                        <td><span class="badge bg-info text-dark">{{ $kegiatan->periode ?? '-' }}</span></td>
+                        <td><span class="badge bg-primary">{{ $kegiatan->bobot_poin }}</span></td>
                         <td>{{ \Carbon\Carbon::parse($kegiatan->tanggal)->translatedFormat('d F Y') }}</td>
                         <td>{{ \Carbon\Carbon::parse($kegiatan->waktu_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($kegiatan->waktu_selesai)->format('H:i') }}</td>
                         <td>{{ $kegiatan->tempat }}</td>
@@ -37,9 +60,17 @@
                             </form>
                         </td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">Tidak ada data kegiatan ditemukan.</td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
+    </div>
+
+    <div class="d-flex justify-content-end mt-3">
+        {{ $kegiatans->links('pagination::bootstrap-5') }}
     </div>
 </div>
 @endsection

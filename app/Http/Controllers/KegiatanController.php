@@ -17,10 +17,27 @@ class KegiatanController extends Controller
         return $ormawa->id;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $ormawaId = $this->getOrmawaId();
-        $kegiatans = Kegiatan::where('ormawa_id', $ormawaId)->get();
+        
+        $query = Kegiatan::where('ormawa_id', $ormawaId);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('nama_kegiatan', 'like', "%{$search}%");
+        }
+        
+        if ($request->filled('tanggal_mulai') && $request->filled('tanggal_selesai')) {
+            $query->whereBetween('tanggal', [$request->tanggal_mulai, $request->tanggal_selesai]);
+        } elseif ($request->filled('tanggal_mulai')) {
+            $query->where('tanggal', '>=', $request->tanggal_mulai);
+        } elseif ($request->filled('tanggal_selesai')) {
+            $query->where('tanggal', '<=', $request->tanggal_selesai);
+        }
+
+        $kegiatans = $query->orderBy('tanggal', 'desc')->paginate(15)->withQueryString();
+        
         return view('pengurus.kegiatan.index', compact('kegiatans'));
     }
 
@@ -40,6 +57,8 @@ class KegiatanController extends Controller
             'waktu_mulai' => 'required',
             'waktu_selesai' => 'required',
             'tempat' => 'required|string|max:255',
+            'periode' => 'required|string|max:255',
+            'bobot_poin' => 'required|integer|min:0',
         ]);
 
         $validated['ormawa_id'] = $ormawaId;
@@ -47,6 +66,21 @@ class KegiatanController extends Controller
         Kegiatan::create($validated);
 
         return redirect()->route('pengurus.kegiatan.index')->with('success', 'Kegiatan berhasil dibuat.');
+    }
+
+    public function show(Kegiatan $kegiatan)
+    {
+        $ormawaId = $this->getOrmawaId();
+        if ($kegiatan->ormawa_id !== $ormawaId) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $kegiatan->load('kehadiran.mahasiswa.pengguna');
+        $totalPeserta  = $kegiatan->kehadiran->count();
+        $totalHadir    = $kegiatan->kehadiran->where('status_kehadiran', 'Hadir')->where('status_verifikasi', 'Disetujui')->count();
+        $totalPending  = $kegiatan->kehadiran->where('status_verifikasi', 'Pending')->count();
+
+        return view('pengurus.kegiatan.show', compact('kegiatan', 'totalPeserta', 'totalHadir', 'totalPending'));
     }
 
     public function edit(Kegiatan $kegiatan)
@@ -73,6 +107,8 @@ class KegiatanController extends Controller
             'waktu_mulai' => 'required',
             'waktu_selesai' => 'required',
             'tempat' => 'required|string|max:255',
+            'periode' => 'required|string|max:255',
+            'bobot_poin' => 'required|integer|min:0',
         ]);
 
         $kegiatan->update($validated);

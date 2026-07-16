@@ -13,8 +13,8 @@
                     <th>Nama Mahasiswa</th>
                     <th>NIM</th>
                     <th>Program Studi</th>
-                    <th>Hadir / Total Kegiatan</th>
-                    <th>Persentase</th>
+                    <th>Poin Didapat / Maks</th>
+                    <th>Tingkat Kehadiran</th>
                     <th>Status Keaktifan</th>
                 </tr>
             </thead>
@@ -26,12 +26,12 @@
                         <td><span class="fw-semibold">{{ $data['nama'] }}</span></td>
                         <td>{{ $data['nim'] }}</td>
                         <td>{{ $data['prodi'] }}</td>
-                        <td>{{ $data['total_hadir'] }} / {{ $data['total_kegiatan'] }}</td>
+                        <td>{{ $data['total_poin'] }} / {{ $data['total_poin_maks'] ?? 0 }}</td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <span class="fw-bold me-2">{{ $data['persentase'] }}%</span>
                                 <div class="progress flex-grow-1" style="height: 6px; min-width: 80px;">
-                                    <div class="progress-bar {{ $data['persentase'] >= 60 ? 'bg-success' : 'bg-danger' }}" role="progressbar" style="width: {{ $data['persentase'] }}%"></div>
+                                    <div class="progress-bar {{ $data['persentase'] >= 75 ? 'bg-success' : 'bg-danger' }}" role="progressbar" style="width: {{ $data['persentase'] }}%"></div>
                                 </div>
                             </div>
                         </td>

@@ -127,8 +127,8 @@
                     <th>NIM</th>
                     <th>No. KIP</th>
                     <th>Ormawa</th>
-                    <th>Hadir / Total Kegiatan</th>
-                    <th>Persentase</th>
+                    <th>Poin Didapat / Poin Maks</th>
+                    <th>Tingkat Kehadiran</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -139,8 +139,15 @@
                         <td>{{ $w['student']->nim }}</td>
                         <td>{{ $w['student']->no_kip }}</td>
                         <td>{{ $w['ormawa'] }}</td>
-                        <td>{{ $w['total_hadir'] }} / {{ $w['total_kegiatan'] }}</td>
-                        <td><span class="fw-bold text-danger">{{ $w['persentase'] }}%</span></td>
+                        <td>{{ $w['total_poin'] }} / {{ $w['total_poin_maks'] }}</td>
+                        <td style="min-width:150px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 10px;">
+                                    <div class="progress-bar bg-danger" role="progressbar" style="width: {{ $w['persentase'] }}%"></div>
+                                </div>
+                                <span class="fw-bold text-danger">{{ $w['persentase'] }}%</span>
+                            </div>
+                        </td>
                         <td><span class="badge bg-danger">TIDAK AKTIF</span></td>
                     </tr>
                 @endforeach

@@ -10,10 +10,25 @@ use Illuminate\Validation\Rule;
 
 class PenggunaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = Pengguna::with('ormawa')->get();
-        return view('admin.pengguna.index', compact('users'));
+        $query = Pengguna::with(['ormawa', 'mahasiswa.ormawas']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('nama', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+        }
+        
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+
+        $pendingCount = Pengguna::where('status_akun', 'pending')->count();
+
+        $users = $query->paginate(15)->withQueryString();
+        
+        return view('admin.pengguna.index', compact('users', 'pendingCount'));
     }
 
     public function create()
@@ -82,5 +97,18 @@ class PenggunaController extends Controller
     {
         $pengguna->delete();
         return redirect()->route('admin.pengguna.index')->with('success', 'Akun pengguna berhasil dihapus.');
+    }
+
+    public function approve(Pengguna $pengguna)
+    {
+        $pengguna->update(['status_akun' => 'aktif']);
+        return redirect()->route('admin.pengguna.index')->with('success', 'Akun ' . $pengguna->nama . ' berhasil diaktifkan.');
+    }
+
+    public function reject(Pengguna $pengguna)
+    {
+        $ormawa = $pengguna->ormawa;
+        $pengguna->delete();
+        return redirect()->route('admin.pengguna.index')->with('success', 'Pendaftaran pengurus' . ($ormawa ? ' ' . $ormawa->nama_ormawa : '') . ' telah ditolak dan akun dihapus.');
     }
 }

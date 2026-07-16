@@ -22,7 +22,7 @@ class OrmawaController extends Controller
     {
         $validated = $request->validate([
             'nama_ormawa' => 'required|string|max:255|unique:ormawa,nama_ormawa',
-            'jenis' => 'required|in:BEM,HIMA,UKM',
+            'jenis' => 'required|in:BEM,HMJ,UKM,MPM,Independen',
             'periode' => 'required|string|max:255',
             'ketua' => 'required|string|max:255',
             'pembina' => 'nullable|string|max:255',
@@ -48,7 +48,7 @@ class OrmawaController extends Controller
     {
         $validated = $request->validate([
             'nama_ormawa' => 'required|string|max:255|unique:ormawa,nama_ormawa,' . $ormawa->id,
-            'jenis' => 'required|in:BEM,HIMA,UKM',
+            'jenis' => 'required|in:BEM,HMJ,UKM,MPM,Independen',
             'periode' => 'required|string|max:255',
             'ketua' => 'required|string|max:255',
             'pembina' => 'nullable|string|max:255',

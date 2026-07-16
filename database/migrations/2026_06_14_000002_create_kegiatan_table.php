@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('kegiatan', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ormawa_id')->constrained('ormawa')->onDelete('cascade');
-            $table->string('nama_kegiatan');
+            $table->string('nama_kegiatan', 150);
             $table->text('deskripsi')->nullable();
             $table->date('tanggal');
             $table->time('waktu_mulai');
             $table->time('waktu_selesai');
-            $table->string('tempat');
+            $table->string('tempat', 150);
             $table->timestamps();
         });
     }

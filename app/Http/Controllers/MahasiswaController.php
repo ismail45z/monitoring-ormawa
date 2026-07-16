@@ -12,9 +12,21 @@ use Illuminate\Validation\Rule;
 
 class MahasiswaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $students = Mahasiswa::with(['pengguna', 'ormawa'])->get();
+        $query = Mahasiswa::with(['pengguna', 'ormawas']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('nim', 'like', "%{$search}%")
+                  ->orWhere('prodi', 'like', "%{$search}%")
+                  ->orWhereHas('pengguna', function ($q) use ($search) {
+                      $q->where('nama', 'like', "%{$search}%");
+                  });
+        }
+
+        $students = $query->paginate(15)->withQueryString();
+        
         return view('admin.mahasiswa.index', compact('students'));
     }
 
@@ -27,37 +39,41 @@ class MahasiswaController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nama' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:pengguna',
-            'password' => 'required|string|min:6',
-            'nim' => 'required|string|max:20|unique:mahasiswa',
-            'no_kip' => 'required|string|max:50|unique:mahasiswa',
-            'prodi' => 'required|string|max:255',
-            'jurusan' => 'required|string|max:255',
-            'angkatan' => 'required|integer',
+            'nama'       => 'required|string|max:255',
+            'email'      => 'required|string|email|max:255|unique:pengguna',
+            'password'   => 'required|string|min:6',
+            'nim'        => 'required|string|max:20|unique:mahasiswa',
+            'no_kip'     => 'required|digits:6|unique:mahasiswa',
+            'prodi'      => 'required|string|max:255',
+            'jurusan'    => 'required|string|max:255',
+            'angkatan'   => 'required|integer',
             'status_kip' => 'required|string|max:50',
-            'ormawa_id' => 'nullable|exists:ormawa,id',
+            'ormawa_ids' => 'nullable|array',
+            'ormawa_ids.*' => 'exists:ormawa,id',
         ]);
 
         DB::transaction(function () use ($request) {
             $user = Pengguna::create([
-                'nama' => $request->nama,
-                'email' => $request->email,
+                'nama'     => $request->nama,
+                'email'    => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => 'mahasiswa_kip',
-                'ormawa_id' => $request->ormawa_id, // Save ormawa_id here too for consistency
+                'role'     => 'mahasiswa_kip',
             ]);
 
-            Mahasiswa::create([
+            $mahasiswa = Mahasiswa::create([
                 'pengguna_id' => $user->id,
-                'nim' => $request->nim,
-                'no_kip' => $request->no_kip,
-                'prodi' => $request->prodi,
-                'jurusan' => $request->jurusan,
-                'angkatan' => $request->angkatan,
-                'status_kip' => $request->status_kip,
-                'ormawa_id' => $request->ormawa_id,
+                'nim'         => $request->nim,
+                'no_kip'      => $request->no_kip,
+                'prodi'       => $request->prodi,
+                'jurusan'     => $request->jurusan,
+                'angkatan'    => $request->angkatan,
+                'status_kip'  => $request->status_kip,
             ]);
+
+            // Attach selected ormawas
+            if ($request->filled('ormawa_ids')) {
+                $mahasiswa->ormawas()->sync($request->ormawa_ids);
+            }
         });
 
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Data Mahasiswa KIP berhasil ditambahkan.');
@@ -65,37 +81,37 @@ class MahasiswaController extends Controller
 
     public function show(Mahasiswa $mahasiswa)
     {
-        $mahasiswa->load(['pengguna', 'ormawa']);
+        $mahasiswa->load(['pengguna', 'ormawas']);
         return view('admin.mahasiswa.show', compact('mahasiswa'));
     }
 
     public function edit(Mahasiswa $mahasiswa)
     {
         $ormawas = Ormawa::all();
-        $mahasiswa->load('pengguna');
+        $mahasiswa->load(['pengguna', 'ormawas']);
         return view('admin.mahasiswa.edit', compact('mahasiswa', 'ormawas'));
     }
 
     public function update(Request $request, Mahasiswa $mahasiswa)
     {
         $request->validate([
-            'nama' => 'required|string|max:255',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('pengguna')->ignore($mahasiswa->pengguna_id)],
-            'password' => 'nullable|string|min:6',
-            'nim' => ['required', 'string', 'max:20', Rule::unique('mahasiswa')->ignore($mahasiswa->id)],
-            'no_kip' => ['required', 'string', 'max:50', Rule::unique('mahasiswa')->ignore($mahasiswa->id)],
-            'prodi' => 'required|string|max:255',
-            'jurusan' => 'required|string|max:255',
-            'angkatan' => 'required|integer',
+            'nama'       => 'required|string|max:255',
+            'email'      => ['required', 'string', 'email', 'max:255', Rule::unique('pengguna')->ignore($mahasiswa->pengguna_id)],
+            'password'   => 'nullable|string|min:6',
+            'nim'        => ['required', 'string', 'max:20', Rule::unique('mahasiswa')->ignore($mahasiswa->id)],
+            'no_kip'     => ['required', 'digits:6', Rule::unique('mahasiswa')->ignore($mahasiswa->id)],
+            'prodi'      => 'required|string|max:255',
+            'jurusan'    => 'required|string|max:255',
+            'angkatan'   => 'required|integer',
             'status_kip' => 'required|string|max:50',
-            'ormawa_id' => 'nullable|exists:ormawa,id',
+            'ormawa_ids' => 'nullable|array',
+            'ormawa_ids.*' => 'exists:ormawa,id',
         ]);
 
         DB::transaction(function () use ($request, $mahasiswa) {
             $userData = [
-                'nama' => $request->nama,
+                'nama'  => $request->nama,
                 'email' => $request->email,
-                'ormawa_id' => $request->ormawa_id,
             ];
 
             if ($request->filled('password')) {
@@ -105,14 +121,16 @@ class MahasiswaController extends Controller
             $mahasiswa->pengguna->update($userData);
 
             $mahasiswa->update([
-                'nim' => $request->nim,
-                'no_kip' => $request->no_kip,
-                'prodi' => $request->prodi,
-                'jurusan' => $request->jurusan,
-                'angkatan' => $request->angkatan,
+                'nim'        => $request->nim,
+                'no_kip'     => $request->no_kip,
+                'prodi'      => $request->prodi,
+                'jurusan'    => $request->jurusan,
+                'angkatan'   => $request->angkatan,
                 'status_kip' => $request->status_kip,
-                'ormawa_id' => $request->ormawa_id,
             ]);
+
+            // Sync ormawas (removes old, adds new)
+            $mahasiswa->ormawas()->sync($request->ormawa_ids ?? []);
         });
 
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Data Mahasiswa KIP berhasil diperbarui.');

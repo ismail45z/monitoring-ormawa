@@ -12,6 +12,17 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <!-- jQuery DataTables CSS -->
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Dark Mode Init Script -->
+    <script>
+        const storedTheme = localStorage.getItem('theme');
+        const getPreferredTheme = () => {
+            if (storedTheme) {
+                return storedTheme;
+            }
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-bs-theme', getPreferredTheme());
+    </script>
     <!-- Custom Style -->
     <style>
         body {
@@ -47,6 +58,62 @@
             border: none;
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        /* Dark Mode Overrides */
+        [data-bs-theme="dark"] body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        [data-bs-theme="dark"] .navbar-custom {
+            background-color: #1e293b !important;
+            border-bottom: 1px solid #334155;
+        }
+        [data-bs-theme="dark"] .card-custom {
+            background-color: #1e293b !important;
+            box-shadow: none;
+            border: 1px solid #334155;
+        }
+        [data-bs-theme="dark"] .text-dark {
+            color: #f8fafc !important;
+        }
+        [data-bs-theme="dark"] .text-dark-toggle {
+            color: #f8fafc !important;
+        }
+        [data-bs-theme="dark"] .bg-light {
+            background-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        [data-bs-theme="dark"] .btn-light {
+            background-color: #334155;
+            color: #f8fafc;
+            border-color: #475569;
+        }
+        [data-bs-theme="dark"] .btn-light:hover {
+            background-color: #475569;
+            color: #fff;
+        }
+        [data-bs-theme="dark"] .dropdown-menu {
+            background-color: #1e293b;
+            border: 1px solid #334155 !important;
+        }
+        [data-bs-theme="dark"] .dropdown-item {
+            color: #cbd5e1;
+        }
+        [data-bs-theme="dark"] .dropdown-item:hover {
+            background-color: #334155;
+            color: #fff;
+        }
+        [data-bs-theme="dark"] .table {
+            color: #cbd5e1;
+            border-color: #334155;
+        }
+        [data-bs-theme="dark"] .list-group-item {
+            background-color: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+        }
             transition: transform 0.3s;
         }
         .card-custom:hover {
@@ -89,7 +156,14 @@
                 </div>
                 
                 <div class="px-3 mb-3 text-center">
-                    <div class="py-2 px-3 bg-secondary bg-opacity-25 rounded-3">
+                    <div class="py-2 px-3 bg-secondary bg-opacity-25 rounded-3 text-center">
+                        @if(Auth::user()->foto)
+                            <img src="{{ asset('storage/' . Auth::user()->foto) }}" alt="Profile" class="rounded-circle mb-2 border border-2 border-primary" style="width: 60px; height: 60px; object-fit: cover;">
+                        @else
+                            <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center text-white mb-2" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                <i class="bi bi-person"></i>
+                            </div>
+                        @endif
                         <small class="text-white d-block text-truncate fw-semibold">{{ Auth::user()->nama }}</small>
                         <span class="badge bg-primary text-uppercase mt-1" style="font-size: 0.7rem;">
                             {{ str_replace('_', ' ', Auth::user()->role) }}
@@ -120,6 +194,14 @@
                                 <i class="bi bi-mortarboard me-2"></i> Kelola Mahasiswa
                             </a>
                         </li>
+                        <li class="nav-item mt-3 mb-1">
+                            <span class="text-muted small fw-bold px-3 text-uppercase">Sistem</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ Route::is('admin.audit.*') ? 'active' : '' }}" href="{{ route('admin.audit.index') }}">
+                                <i class="bi bi-shield-lock-fill me-2"></i> Audit Log
+                            </a>
+                        </li>
                     @elseif(Auth::user()->role == 'pengurus_ormawa')
                         <li class="nav-item">
                             <a class="nav-link {{ Route::is('pengurus.dashboard') ? 'active' : '' }}" href="{{ route('pengurus.dashboard') }}">
@@ -141,10 +223,25 @@
                                 <i class="bi bi-bar-chart-line-fill me-2"></i> Rekap Keaktifan
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ Route::is('pengurus.anggota.*') ? 'active' : '' }}" href="{{ route('pengurus.anggota.index') }}">
+                                <i class="bi bi-people-fill me-2"></i> Anggota Ormawa
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ Route::is('pengurus.pengumuman.*') ? 'active' : '' }}" href="{{ route('pengurus.pengumuman.index') }}">
+                                <i class="bi bi-megaphone-fill me-2"></i> Pengumuman
+                            </a>
+                        </li>
                     @elseif(Auth::user()->role == 'mahasiswa_kip')
                         <li class="nav-item">
                             <a class="nav-link {{ Route::is('mahasiswa.dashboard') ? 'active' : '' }}" href="{{ route('mahasiswa.dashboard') }}">
                                 <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ Route::is('mahasiswa.pendaftaran.*') ? 'active' : '' }}" href="{{ route('mahasiswa.pendaftaran.index') }}">
+                                <i class="bi bi-person-plus-fill me-2"></i> Gabung Ormawa
                             </a>
                         </li>
                         <li class="nav-item">
@@ -160,6 +257,11 @@
                         <li class="nav-item">
                             <a class="nav-link {{ Route::is('mahasiswa.rekap') ? 'active' : '' }}" href="{{ route('mahasiswa.rekap') }}">
                                 <i class="bi bi-person-badge-fill me-2"></i> Rekap Keaktifan
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ Route::is('mahasiswa.timeline') ? 'active' : '' }}" href="{{ route('mahasiswa.timeline') }}">
+                                <i class="bi bi-calendar-range-fill me-2"></i> Timeline Progja
                             </a>
                         </li>
                     @elseif(Auth::user()->role == 'wadir')
@@ -189,12 +291,27 @@
                         </button>
                         <div class="collapse navbar-collapse" id="navbarSupportedContent">
                             <div class="ms-auto d-flex align-items-center">
-                                <span class="me-3 text-muted d-none d-md-inline">Hari ini: <strong class="text-dark">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</strong></span>
+                                <span class="me-3 text-muted d-none d-md-inline">Hari ini: <strong class="text-dark-toggle">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</strong></span>
+                                
+                                <!-- Dark Mode Toggle -->
+                                <button id="darkModeToggle" class="btn btn-light rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-moon-fill" id="themeIcon"></i>
+                                </button>
+
                                 <div class="dropdown">
-                                    <button class="btn btn-light dropdown-toggle rounded-pill" type="button" data-bs-toggle="dropdown">
-                                        <i class="bi bi-person-circle me-1"></i> {{ Auth::user()->nama }}
+                                    <button class="btn btn-light dropdown-toggle rounded-pill d-flex align-items-center" type="button" data-bs-toggle="dropdown">
+                                        @if(Auth::user()->foto)
+                                            <img src="{{ asset('storage/' . Auth::user()->foto) }}" alt="Profile" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
+                                        @else
+                                            <i class="bi bi-person-circle me-2"></i>
+                                        @endif
+                                        {{ Auth::user()->nama }}
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                                        <li>
+                                            <a href="{{ route('profile.edit') }}" class="dropdown-item"><i class="bi bi-person me-2"></i> Profil Saya</a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <form action="{{ route('logout') }}" method="POST" class="d-inline">
                                                 @csrf
@@ -247,6 +364,30 @@
                     }
                 });
             }
+
+            // Dark Mode Toggle Logic
+            const themeIcon = $('#themeIcon');
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            
+            if (currentTheme === 'dark') {
+                themeIcon.removeClass('bi-moon-fill').addClass('bi-sun-fill');
+            } else {
+                themeIcon.removeClass('bi-sun-fill').addClass('bi-moon-fill');
+            }
+
+            $('#darkModeToggle').on('click', function() {
+                const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                const newTheme = isDark ? 'light' : 'dark';
+                
+                document.documentElement.setAttribute('data-bs-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                
+                if (newTheme === 'dark') {
+                    themeIcon.removeClass('bi-moon-fill').addClass('bi-sun-fill');
+                } else {
+                    themeIcon.removeClass('bi-sun-fill').addClass('bi-moon-fill');
+                }
+            });
         });
     </script>
     @yield('scripts')

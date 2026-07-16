@@ -20,7 +20,7 @@
         </div>
     @endif
 
-    <form action="{{ route('mahasiswa.kehadiran.catat.store', $kegiatan->id) }}" method="POST">
+    <form action="{{ route('mahasiswa.kehadiran.catat.store', $kegiatan->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="mb-3">
             <label class="form-label small text-muted">Nama Kegiatan</label>
@@ -38,6 +38,12 @@
                 <option value="Izin" {{ old('status_kehadiran') == 'Izin' ? 'selected' : '' }}>Izin</option>
             </select>
         </div>
+        <div class="mb-3">
+            <label class="form-label">Bukti Foto <span class="text-danger">*</span></label>
+            <input type="file" name="bukti_foto" class="form-control" accept="image/*" required>
+            <small class="text-muted">Wajib dilampirkan (Foto kehadiran jika Hadir, atau foto surat keterangan/bukti jika Izin).</small>
+        </div>
+        
         <div class="mb-4">
             <label class="form-label">Keterangan Tambahan (Opsional)</label>
             <textarea name="keterangan" class="form-control" rows="3" placeholder="Tulis alasan jika Izin / Tidak Hadir, atau catatan lain...">{{ old('keterangan') }}</textarea>

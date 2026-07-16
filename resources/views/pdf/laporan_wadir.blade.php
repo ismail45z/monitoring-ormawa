@@ -120,8 +120,8 @@
                 <th style="width: 15%;">No KIP</th>
                 <th style="width: 18%;">Program Studi</th>
                 <th style="width: 10%; text-align: center;">Total Kegiatan</th>
-                <th style="width: 8%; text-align: center;">Hadir</th>
-                <th style="width: 12%; text-align: center;">Persentase</th>
+                <th style="width: 12%; text-align: center;">Poin Didapat / Maks</th>
+                <th style="width: 10%; text-align: center;">Persentase</th>
                 <th style="width: 15%; text-align: center;">Status</th>
             </tr>
         </thead>
@@ -135,7 +135,7 @@
                     <td>{{ $row['no_kip'] }}</td>
                     <td>{{ $row['prodi'] }}</td>
                     <td style="text-align: center;">{{ $row['total_kegiatan'] }}</td>
-                    <td style="text-align: center;">{{ $row['total_hadir'] }}</td>
+                    <td style="text-align: center;">{{ $row['total_poin'] }} / {{ $row['total_poin_maks'] ?? 0 }}</td>
                     <td style="text-align: center; font-weight: bold;">{{ $row['persentase'] }}%</td>
                     <td style="text-align: center;">
                         @if($row['status'] == 'AKTIF')

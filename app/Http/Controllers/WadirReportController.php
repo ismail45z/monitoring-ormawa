@@ -16,67 +16,83 @@ class WadirReportController extends Controller
      */
     private function getReportData($ormawaId = null, $startDate = null, $endDate = null)
     {
-        $studentsQuery = Mahasiswa::with(['pengguna', 'ormawa']);
+        $studentsQuery = Mahasiswa::with(['pengguna', 'ormawas']);
 
+        // Filter mahasiswa yang bergabung dengan ormawa tertentu
         if ($ormawaId) {
-            $studentsQuery->where('ormawa_id', $ormawaId);
+            $studentsQuery->whereHas('ormawas', fn($q) => $q->where('ormawa.id', $ormawaId));
         }
 
         $students = $studentsQuery->get();
         $reportData = [];
 
         foreach ($students as $student) {
-            $studentOrmawaId = $student->ormawa_id;
+            // Mahasiswa bisa join banyak ormawa - ambil semua ormawa yang diikuti
+            $studentOrmawas = $student->ormawas;
 
-            $kegiatanQuery = Kegiatan::query();
-            if ($studentOrmawaId) {
-                $kegiatanQuery->where('ormawa_id', $studentOrmawaId);
-            } else {
-                $kegiatanQuery->whereRaw('1 = 0'); // No activities if no ormawa
+            // Jika filter ormawa aktif, batasi hanya ke ormawa tersebut
+            if ($ormawaId) {
+                $studentOrmawas = $studentOrmawas->where('id', $ormawaId);
             }
 
-            if ($startDate) {
-                $kegiatanQuery->where('tanggal', '>=', $startDate);
-            }
-            if ($endDate) {
-                $kegiatanQuery->where('tanggal', '<=', $endDate);
+            $ormawaIds = $studentOrmawas->pluck('id')->toArray();
+            $ormawaNama = $studentOrmawas->pluck('nama_ormawa')->join(', ') ?: 'Tidak Mengikuti';
+
+            if (empty($ormawaIds)) {
+                $reportData[] = [
+                    'nama'           => $student->pengguna->nama ?? '-',
+                    'nim'            => $student->nim,
+                    'no_kip'         => $student->no_kip,
+                    'prodi'          => $student->prodi,
+                    'ormawa'         => 'Tidak Mengikuti',
+                    'total_kegiatan' => 0,
+                    'total_poin'     => 0,
+                    'persentase'     => 0,
+                    'status'         => 'TIDAK AKTIF',
+                ];
+                continue;
             }
 
-            $totalKegiatan = $studentOrmawaId ? $kegiatanQuery->count() : 0;
+            // Hitung total kegiatan dari semua ormawa yang diikuti
+            $kegiatanQuery = Kegiatan::whereIn('ormawa_id', $ormawaIds);
+            if ($startDate) $kegiatanQuery->where('tanggal', '>=', $startDate);
+            if ($endDate)   $kegiatanQuery->where('tanggal', '<=', $endDate);
+            $totalKegiatan = (clone $kegiatanQuery)->count();
+            $totalPoinMaksimal = (clone $kegiatanQuery)->sum('bobot_poin');
 
+            // Hitung total poin kehadiran yang sudah diverifikasi
             $hadirQuery = Kehadiran::where('mahasiswa_id', $student->id)
-                ->where('status_kehadiran', 'Hadir')
-                ->where('status_verifikasi', 'Disetujui');
-
-            if ($studentOrmawaId) {
-                $hadirQuery->whereHas('kegiatan', function ($q) use ($studentOrmawaId, $startDate, $endDate) {
-                    $q->where('ormawa_id', $studentOrmawaId);
-                    if ($startDate) {
-                        $q->where('tanggal', '>=', $startDate);
-                    }
-                    if ($endDate) {
-                        $q->where('tanggal', '<=', $endDate);
-                    }
+                ->whereIn('status_kehadiran', ['Hadir', 'Izin'])
+                ->where('status_verifikasi', 'Disetujui')
+                ->whereHas('kegiatan', function ($q) use ($ormawaIds, $startDate, $endDate) {
+                    $q->whereIn('ormawa_id', $ormawaIds);
+                    if ($startDate) $q->where('tanggal', '>=', $startDate);
+                    if ($endDate)   $q->where('tanggal', '<=', $endDate);
                 });
-            } else {
-                $hadirQuery->whereRaw('1 = 0');
-            }
 
-            $totalHadir = $studentOrmawaId ? $hadirQuery->count() : 0;
+            $totalPoin = $hadirQuery->with('kegiatan')->get()->sum(function ($kehadiran) {
+                if ($kehadiran->status_kehadiran === 'Hadir') {
+                    return $kehadiran->kegiatan->bobot_poin ?? 0;
+                } elseif ($kehadiran->status_kehadiran === 'Izin') {
+                    return ($kehadiran->kegiatan->bobot_poin ?? 0) / 2;
+                }
+                return 0;
+            });
 
-            $persentase = $totalKegiatan > 0 ? round(($totalHadir / $totalKegiatan) * 100, 1) : 0;
-            $status = $persentase >= 60 ? 'AKTIF' : 'TIDAK AKTIF';
+            $persentase = $totalPoinMaksimal > 0 ? round(($totalPoin / $totalPoinMaksimal) * 100) : 0;
+            $status = $persentase >= 75 ? 'AKTIF' : 'TIDAK AKTIF';
 
             $reportData[] = [
-                'nama' => $student->pengguna->nama,
-                'nim' => $student->nim,
-                'no_kip' => $student->no_kip,
-                'prodi' => $student->prodi,
-                'ormawa' => $student->ormawa ? $student->ormawa->nama_ormawa : 'Tidak Mengikuti',
+                'nama'           => $student->pengguna->nama ?? '-',
+                'nim'            => $student->nim,
+                'no_kip'         => $student->no_kip,
+                'prodi'          => $student->prodi,
+                'ormawa'         => $ormawaNama,
                 'total_kegiatan' => $totalKegiatan,
-                'total_hadir' => $totalHadir,
-                'persentase' => $persentase,
-                'status' => $status,
+                'total_poin_maks'=> $totalPoinMaksimal,
+                'total_poin'     => $totalPoin,
+                'persentase'     => $persentase,
+                'status'         => $status,
             ];
         }
 
@@ -132,8 +148,8 @@ class WadirReportController extends Controller
                 'Program Studi', 
                 'Organisasi Mahasiswa (Ormawa)', 
                 'Total Kegiatan', 
-                'Total Hadir', 
-                'Persentase Kehadiran', 
+                'Total Poin', 
+                'Persentase', 
                 'Status Keaktifan'
             ]);
 
@@ -147,7 +163,7 @@ class WadirReportController extends Controller
                     $row['prodi'],
                     $row['ormawa'],
                     $row['total_kegiatan'],
-                    $row['total_hadir'],
+                    $row['total_poin'] . ' / ' . ($row['total_poin_maks'] ?? 0),
                     $row['persentase'] . '%',
                     $row['status']
                 ]);

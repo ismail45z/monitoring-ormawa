@@ -21,6 +21,16 @@
             <label class="form-label">Nama Kegiatan</label>
             <input type="text" name="nama_kegiatan" class="form-control" placeholder="Contoh: Rapat Kerja Ormawa" value="{{ old('nama_kegiatan') }}" required>
         </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Periode</label>
+                <input type="text" name="periode" class="form-control" placeholder="Contoh: 2023/2024" value="{{ old('periode') }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Bobot (Poin)</label>
+                <input type="number" name="bobot_poin" class="form-control" placeholder="Contoh: 10" value="{{ old('bobot_poin') }}" min="0" required>
+            </div>
+        </div>
         <div class="mb-3">
             <label class="form-label">Tanggal Pelaksanaan</label>
             <input type="date" name="tanggal" class="form-control" value="{{ old('tanggal') }}" required>

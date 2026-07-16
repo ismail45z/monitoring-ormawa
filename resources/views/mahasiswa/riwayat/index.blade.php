@@ -10,6 +10,8 @@
             <thead>
                 <tr>
                     <th>Nama Kegiatan</th>
+                    <th>Periode</th>
+                    <th>Bobot Poin</th>
                     <th>Tanggal Pelaksanaan</th>
                     <th>Status Kehadiran</th>
                     <th>Status Verifikasi</th>
@@ -21,6 +23,8 @@
                 @foreach($kehadirans as $kh)
                     <tr>
                         <td><span class="fw-semibold">{{ $kh->kegiatan->nama_kegiatan }}</span></td>
+                        <td><span class="badge bg-info text-dark">{{ $kh->kegiatan->periode ?? '-' }}</span></td>
+                        <td><span class="badge bg-primary">{{ $kh->kegiatan->bobot_poin }}</span></td>
                         <td>{{ \Carbon\Carbon::parse($kh->kegiatan->tanggal)->translatedFormat('d F Y') }}</td>
                         <td>
                             @if($kh->status_kehadiran == 'Hadir')
@@ -34,10 +38,19 @@
                         <td>
                             @if($kh->status_verifikasi == 'Disetujui')
                                 <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Disetujui</span>
+                                @if($kh->keterangan_verifikasi)
+                                    <div class="mt-1 small text-success"><strong>Catatan:</strong> {{ $kh->keterangan_verifikasi }}</div>
+                                @endif
                             @elseif($kh->status_verifikasi == 'Ditolak')
                                 <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Ditolak</span>
+                                @if($kh->keterangan_verifikasi)
+                                    <div class="mt-1 small text-danger"><strong>Alasan:</strong> {{ $kh->keterangan_verifikasi }}</div>
+                                @endif
                             @else
                                 <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                                @if($kh->keterangan_verifikasi)
+                                    <div class="mt-1 small text-muted"><strong>Info:</strong> {{ $kh->keterangan_verifikasi }}</div>
+                                @endif
                             @endif
                         </td>
                         <td>{{ $kh->keterangan ?? '-' }}</td>

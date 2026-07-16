@@ -3,12 +3,23 @@
 
 @section('content')
 <div class="card card-custom p-4">
-    <h4 class="fw-bold mb-4"><i class="bi bi-check-circle-fill text-primary me-2"></i>Verifikasi Kehadiran Mahasiswa KIP-K</h4>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h4 class="fw-bold mb-0"><i class="bi bi-check-circle-fill text-primary me-2"></i>Verifikasi Kehadiran Mahasiswa KIP-K</h4>
+        <div>
+            <button type="button" id="btnBulkApprove" class="btn btn-success rounded-pill px-4 shadow-sm disabled" onclick="bulkApprove()">
+                <i class="bi bi-check-all me-1"></i>Setujui Massal (<span id="selectedCount">0</span>)
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Placeholder for Floating Toast notifications -->
+    <div id="ajaxAlertContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;"></div>
 
     <div class="table-responsive">
-        <table class="table align-middle datatable">
+        <table class="table align-middle" id="attendanceTable">
             <thead>
                 <tr>
+                    <th width="40"><input type="checkbox" id="selectAll" class="form-check-input"></th>
                     <th>Nama Mahasiswa</th>
                     <th>NIM</th>
                     <th>Kegiatan</th>
@@ -16,13 +27,17 @@
                     <th>Waktu Pencatatan</th>
                     <th>Pilihan Kehadiran</th>
                     <th>Keterangan Mandiri</th>
+                    <th>Bukti Foto</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($kehadirans as $kh)
-                    <tr>
-                        <td><span class="fw-semibold">{{ $kh->mahasiswa->pengguna->nama }}</span></td>
+                @forelse($kehadirans as $kh)
+                    <tr id="row-{{ $kh->id }}">
+                        <td>
+                            <input type="checkbox" class="form-check-input attendance-checkbox" value="{{ $kh->id }}" onchange="updateSelectedCount()">
+                        </td>
+                        <td><span class="fw-semibold text-dark-toggle">{{ $kh->mahasiswa->pengguna->nama }}</span></td>
                         <td>{{ $kh->mahasiswa->nim }}</td>
                         <td>{{ $kh->kegiatan->nama_kegiatan }}</td>
                         <td>{{ \Carbon\Carbon::parse($kh->kegiatan->tanggal)->translatedFormat('d M Y') }}</td>
@@ -41,22 +56,267 @@
                         </td>
                         <td>{{ $kh->keterangan ?? '-' }}</td>
                         <td>
-                            <!-- Setuju Form -->
-                            <form action="{{ route('pengurus.kehadiran.approve', $kh->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 me-1"><i class="bi bi-check-lg"></i> Setuju</button>
-                            </form>
+                            @if($kh->bukti_foto)
+                                <div class="position-relative d-inline-block">
+                                    <img src="{{ asset('storage/' . $kh->bukti_foto) }}" 
+                                         alt="Bukti" 
+                                         class="rounded border border-secondary border-opacity-25" 
+                                         style="width: 45px; height: 45px; object-fit: cover; cursor: pointer; transition: transform 0.2s;"
+                                         onmouseover="this.style.transform='scale(1.12)'"
+                                         onmouseout="this.style.transform='scale(1)'"
+                                         onclick="showQuickPhoto('{{ asset('storage/' . $kh->bukti_foto) }}', '{{ $kh->mahasiswa->pengguna->nama }}')">
+                                </div>
+                            @else
+                                <span class="text-muted small">-</span>
+                            @endif
+                        </td>
+                        <td>
+                            <!-- Tombol Verifikasi (Modal Trigger) -->
+                            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#verifikasiModal{{ $kh->id }}">
+                                <i class="bi bi-shield-check"></i> Verifikasi
+                            </button>
                             
-                            <!-- Tolak Form -->
-                            <form action="{{ route('pengurus.kehadiran.reject', $kh->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin MENOLAK kehadiran ini?')">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x-lg"></i> Tolak</button>
-                            </form>
+                            <!-- Modal Verifikasi -->
+                            <div class="modal fade" id="verifikasiModal{{ $kh->id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Verifikasi Kehadiran</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-start">
+                                            <p>Mahasiswa: <strong>{{ $kh->mahasiswa->pengguna->nama }}</strong><br>
+                                            Kegiatan: {{ $kh->kegiatan->nama_kegiatan }}</p>
+                                            
+                                            <!-- Setuju Form -->
+                                            <form action="{{ route('pengurus.kehadiran.approve', $kh->id) }}" method="POST" class="ajax-verify-form mb-4 border-bottom pb-4">
+                                                @csrf
+                                                <div class="mb-2">
+                                                    <label class="form-label text-success fw-bold"><i class="bi bi-check-circle"></i> Opsi Setuju</label>
+                                                    <textarea name="keterangan_verifikasi" class="form-control" rows="2" placeholder="Catatan persetujuan (Opsional)"></textarea>
+                                                </div>
+                                                <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-lg"></i> Setujui Kehadiran</button>
+                                            </form>
+                                            
+                                            <!-- Tolak Form -->
+                                            <form action="{{ route('pengurus.kehadiran.reject', $kh->id) }}" method="POST" class="ajax-verify-form" onsubmit="return confirm('Apakah Anda yakin ingin MENOLAK kehadiran ini?')">
+                                                @csrf
+                                                <div class="mb-2">
+                                                    <label class="form-label text-danger fw-bold"><i class="bi bi-x-circle"></i> Opsi Tolak</label>
+                                                    <textarea name="keterangan_verifikasi" class="form-control" rows="2" placeholder="Alasan penolakan (Wajib diisi)" required></textarea>
+                                                </div>
+                                                <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-x-lg"></i> Tolak Kehadiran</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">Semua absensi telah diverifikasi!</td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 </div>
+
+<!-- Modal Quick Photo Preview -->
+<div class="modal fade" id="quickPhotoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body text-center p-0 position-relative">
+                <img src="" id="quickPhotoImg" class="img-fluid rounded shadow-lg border border-light border-2" style="max-height: 80vh; object-fit: contain;">
+                <div class="bg-dark bg-opacity-70 text-white py-2 px-3 rounded-bottom position-absolute bottom-0 start-0 end-0">
+                    <span id="quickPhotoTitle"></span>
+                </div>
+                <button type="button" class="btn btn-light btn-sm rounded-circle position-absolute top-0 end-0 mt-2 me-2 shadow" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
+<script>
+    // Quick Photo Preview
+    function showQuickPhoto(url, name) {
+        document.getElementById('quickPhotoImg').src = url;
+        document.getElementById('quickPhotoTitle').innerText = 'Foto Bukti: ' + name;
+        const modal = new bootstrap.Modal(document.getElementById('quickPhotoModal'));
+        modal.show();
+    }
+
+    // Toggle Select All
+    $('#selectAll').on('change', function() {
+        $('.attendance-checkbox').prop('checked', this.checked);
+        updateSelectedCount();
+    });
+
+    // Update selected count & enable/disable button
+    function updateSelectedCount() {
+        const selected = $('.attendance-checkbox:checked').length;
+        $('#selectedCount').text(selected);
+        
+        if (selected > 0) {
+            $('#btnBulkApprove').removeClass('disabled');
+        } else {
+            $('#btnBulkApprove').addClass('disabled');
+            $('#selectAll').prop('checked', false);
+        }
+    }
+
+    // Show floating alert (toast-like)
+    function showFloatingAlert(type, message) {
+        const alertClass = type === 'success' ? 'bg-success text-white' : 'bg-danger text-white';
+        const icon = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+        
+        const alertHtml = `
+            <div class="toast show align-items-center ${alertClass} border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi ${icon} me-2"></i> ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        
+        const container = $('#ajaxAlertContainer');
+        container.append(alertHtml);
+        
+        // Auto remove toast after 4 seconds
+        setTimeout(() => {
+            container.find('.toast').first().fadeOut(300, function() {
+                $(this).remove();
+            });
+        }, 4000);
+    }
+
+    // Update Notification Badge in Sidebar
+    function updateNotificationBadge(decrementBy = 1) {
+        const badge = $('.sidebar-attendance-badge');
+        if (badge.length > 0) {
+            let currentCount = parseInt(badge.text()) || 0;
+            let newCount = currentCount - decrementBy;
+            if (newCount > 0) {
+                badge.text(newCount);
+            } else {
+                badge.remove();
+            }
+        }
+    }
+
+    // Individual AJAX Verification Form Submit
+    $(document).ready(function() {
+        // Handle select all change state when row checkboxes are checked
+        $(document).on('change', '.attendance-checkbox', function() {
+            const allCheckboxCount = $('.attendance-checkbox').length;
+            const checkedCheckboxCount = $('.attendance-checkbox:checked').length;
+            $('#selectAll').prop('checked', allCheckboxCount === checkedCheckboxCount);
+        });
+
+        // Intercept form submit
+        $(document).on('submit', '.ajax-verify-form', function(e) {
+            e.preventDefault();
+            const form = $(this);
+            const url = form.attr('action');
+            const data = form.serialize();
+            const modalElement = form.closest('.modal');
+            const modalId = modalElement.attr('id');
+            const row = form.closest('tr');
+            
+            // Disable buttons to prevent double click
+            form.find('button[type="submit"]').addClass('disabled');
+
+            $.ajax({
+                url: url,
+                method: 'POST',
+                data: data,
+                success: function(response) {
+                    // Close modal using bootstrap API
+                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                    
+                    // Remove row with slideUp/fadeOut
+                    row.fadeOut(400, function() {
+                        $(this).remove();
+                        updateSelectedCount();
+                        // Check if no more records
+                        if ($('#attendanceTable tbody tr[id^="row-"]').length === 0) {
+                            $('#attendanceTable tbody').html('<tr><td colspan="10" class="text-center text-muted py-4">Semua absensi telah diverifikasi!</td></tr>');
+                        }
+                    });
+                    
+                    showFloatingAlert('success', response.message || 'Verifikasi berhasil disimpan.');
+                    updateNotificationBadge(1);
+                },
+                error: function(xhr) {
+                    form.find('button[type="submit"]').removeClass('disabled');
+                    const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal memproses verifikasi. Silakan coba lagi.';
+                    showFloatingAlert('danger', errorMsg);
+                }
+            });
+        });
+    });
+
+    // Bulk Approve AJAX Submit
+    function bulkApprove() {
+        const selectedIds = [];
+        $('.attendance-checkbox:checked').each(function() {
+            selectedIds.push($(this).val());
+        });
+        
+        if (selectedIds.length === 0) return;
+        
+        if (!confirm(`Setujui ${selectedIds.length} absensi yang terpilih secara massal?`)) return;
+        
+        const btn = $('#btnBulkApprove');
+        btn.addClass('disabled');
+        
+        $.ajax({
+            url: "{{ route('pengurus.kehadiran.bulk-approve') }}",
+            method: 'POST',
+            data: {
+                _token: "{{ csrf_token() }}",
+                ids: selectedIds
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Remove selected rows
+                    selectedIds.forEach(id => {
+                        $(`#row-${id}`).fadeOut(400, function() {
+                            $(this).remove();
+                            if ($('#attendanceTable tbody tr[id^="row-"]').length === 0) {
+                                $('#attendanceTable tbody').html('<tr><td colspan="10" class="text-center text-muted py-4">Semua absensi telah diverifikasi!</td></tr>');
+                            }
+                        });
+                    });
+                    
+                    // Reset select all and count
+                    $('#selectAll').prop('checked', false);
+                    setTimeout(() => {
+                        updateSelectedCount();
+                    }, 500);
+                    
+                    showFloatingAlert('success', response.message);
+                    updateNotificationBadge(selectedIds.length);
+                } else {
+                    btn.removeClass('disabled');
+                    showFloatingAlert('danger', response.message);
+                }
+            },
+            error: function() {
+                btn.removeClass('disabled');
+                showFloatingAlert('danger', 'Terjadi kesalahan saat memproses secara massal.');
+            }
+        });
+    }
+</script>
 @endsection

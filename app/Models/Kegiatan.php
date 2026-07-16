@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use OwenIt\Auditing\Contracts\Auditable;
 
-#[Fillable(['ormawa_id', 'nama_kegiatan', 'deskripsi', 'tanggal', 'waktu_mulai', 'waktu_selesai', 'tempat'])]
-class Kegiatan extends Model
+#[Fillable(['ormawa_id', 'nama_kegiatan', 'deskripsi', 'tanggal', 'waktu_mulai', 'waktu_selesai', 'tempat', 'periode', 'bobot_poin'])]
+class Kegiatan extends Model implements Auditable
 {
     use HasFactory;
+    use \OwenIt\Auditing\Auditable;
 
     /**
      * The table associated with the model.

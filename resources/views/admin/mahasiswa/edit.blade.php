@@ -43,7 +43,7 @@
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Nomor KIP-Kuliah</label>
-                <input type="text" name="no_kip" class="form-control" value="{{ old('no_kip', $mahasiswa->no_kip) }}" required>
+                <input type="text" name="no_kip" class="form-control" value="{{ old('no_kip', $mahasiswa->no_kip) }}" required maxlength="6" minlength="6" pattern="\d{6}" title="Nomor KIP-Kuliah harus berupa 6 digit angka">
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Jurusan</label>
@@ -66,14 +66,23 @@
                 </select>
             </div>
             <div class="col-md-12 mb-4">
-                <label class="form-label">Organisasi Mahasiswa (Ormawa)</label>
-                <select name="ormawa_id" class="form-select">
-                    <option value="">-- Tidak Mengikuti / Pilih Ormawa --</option>
+                <label class="form-label fw-semibold">Organisasi Mahasiswa (Ormawa) <span class="text-muted fw-normal">(Dapat memilih lebih dari satu)</span></label>
+                <div class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;">
+                    @php $currentOrmawa = old('ormawa_ids', $mahasiswa->ormawas->pluck('id')->toArray()); @endphp
                     @foreach($ormawas as $orm)
-                        <option value="{{ $orm->id }}" {{ old('ormawa_id', $mahasiswa->ormawa_id) == $orm->id ? 'selected' : '' }}>{{ $orm->nama_ormawa }}</option>
+                        <div class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" name="ormawa_ids[]" id="ormawa_{{ $orm->id }}" value="{{ $orm->id }}"
+                                {{ in_array($orm->id, $currentOrmawa) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="ormawa_{{ $orm->id }}">
+                                {{ $orm->nama_ormawa }}
+                                @if($orm->jenis)
+                                    <small class="text-muted">({{ $orm->jenis }})</small>
+                                @endif
+                            </label>
+                        </div>
                     @endforeach
-                </select>
-                <small class="text-muted">Menghubungkan mahasiswa dengan Ormawa yang diikuti agar dapat mencatat kehadiran di kegiatannya.</small>
+                </div>
+                <small class="text-muted">Centang semua Ormawa yang diikuti mahasiswa ini. Keaktifan dihitung terpisah per Ormawa.</small>
             </div>
         </div>
 

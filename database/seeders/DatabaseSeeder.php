@@ -33,14 +33,49 @@ class DatabaseSeeder extends Seeder
             'ormawa_id' => null,
         ]);
 
-        // Pengurus Account (e.g., President of BEM)
+        // Pengurus Account (e.g., President of MPM)
         Pengguna::create([
-            'nama' => 'Andi Setiawan (Ketua BEM)',
+            'nama' => 'Andi Setiawan (Ketua MPM)',
             'email' => 'pengurus@mail.com',
             'password' => Hash::make('password'),
             'role' => 'pengurus_ormawa',
-            'ormawa_id' => 1, // BEM
+            'ormawa_id' => 1, // MPM
         ]);
+
+        // Create Pengurus accounts for all remaining Ormawas
+        $allOrmawas = \App\Models\Ormawa::all();
+        foreach ($allOrmawas as $ormawa) {
+            // Skip the first one which is already created above as pengurus@mail.com
+            if ($ormawa->id === 1) {
+                continue;
+            }
+
+            $slug = strtolower(trim($ormawa->nama_ormawa));
+            $slug = preg_replace('/\(.*?\)/', '', $slug);
+            $slug = str_replace(
+                ['ukm', 'hmj', 'majelis permusyawaratan mahasiswa', 'komisi pemilihan raya mahasiswa', 'keluarga mahasiswa katolik', 'badan koordinasi mahasiswa kristen'], 
+                ['', '', 'mpm', 'kprm', 'kmk', 'bkmk'], 
+                $slug
+            );
+            $slug = trim($slug);
+            $slug = str_replace([' & ', ' dan ', ' unit polnep', ' unit', ' '], ['', '', '', '', '.'], $slug);
+            $slug = preg_replace('/\.+/', '.', $slug);
+            $slug = preg_replace('/[^a-z0-9\.]/', '', $slug);
+            $slug = trim($slug, '.');
+            if (empty($slug)) {
+                $slug = 'ormawa' . $ormawa->id;
+            }
+
+            $email = 'pengurus.' . $slug . '@mail.com';
+
+            Pengguna::create([
+                'nama' => 'Pengurus ' . $ormawa->nama_ormawa,
+                'email' => $email,
+                'password' => Hash::make('password'),
+                'role' => 'pengurus_ormawa',
+                'ormawa_id' => $ormawa->id,
+            ]);
+        }
 
         // Mahasiswa Account (KIP-K Student)
         $mhsUser = Pengguna::create([
@@ -51,19 +86,19 @@ class DatabaseSeeder extends Seeder
             'ormawa_id' => null,
         ]);
 
-        // Detail Mahasiswa record (Registered in HIMA TI - ormawa_id: 2)
+        // Detail Mahasiswa record (Registered in IKMADIKSI - ormawa: id 2)
         $mahasiswa = Mahasiswa::create([
             'pengguna_id' => $mhsUser->id,
-            'nim' => '220102001',
-            'no_kip' => 'KIP20240982',
-            'jurusan' => 'Teknologi Informasi',
-            'prodi' => 'D3 Teknik Informatika',
-            'angkatan' => 2024,
-            'status_kip' => 'Aktif',
-            'ormawa_id' => 2, // HIMA TI
+            'nim'         => '220102001',
+            'no_kip'      => 'KIP20240982',
+            'jurusan'     => 'Teknologi Informasi',
+            'prodi'       => 'D3 Teknik Informatika',
+            'angkatan'    => 2024,
+            'status_kip'  => 'Aktif',
         ]);
+        $mahasiswa->ormawas()->attach(2); // IKMADIKSI
 
-        // Another Mahasiswa KIP-K student for testing watchlist (Inactive student, ormawa: HIMA TI)
+        // Another Mahasiswa KIP-K student for testing watchlist (Inactive student, ormawa: IKMADIKSI)
         $mhsUser2 = Pengguna::create([
             'nama' => 'Budi Santoso',
             'email' => 'budi@mail.com',
@@ -74,14 +109,14 @@ class DatabaseSeeder extends Seeder
 
         $mahasiswa2 = Mahasiswa::create([
             'pengguna_id' => $mhsUser2->id,
-            'nim' => '220102002',
-            'no_kip' => 'KIP20240983',
-            'jurusan' => 'Teknologi Informasi',
-            'prodi' => 'D3 Teknik Informatika',
-            'angkatan' => 2024,
-            'status_kip' => 'Aktif',
-            'ormawa_id' => 2, // HIMA TI
+            'nim'         => '220102002',
+            'no_kip'      => 'KIP20240983',
+            'jurusan'     => 'Teknologi Informasi',
+            'prodi'       => 'D3 Teknik Informatika',
+            'angkatan'    => 2024,
+            'status_kip'  => 'Aktif',
         ]);
+        $mahasiswa2->ormawas()->attach(2); // IKMADIKSI
 
         // Wadir Account (Vice Director)
         Pengguna::create([
@@ -93,9 +128,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 3. Seed Sample Activities (Kegiatan)
-        // Activities under HIMA TI (ormawa_id: 2)
+        // Activities under IKMADIKSI (ormawa_id: 2)
         $kegiatan1 = Kegiatan::create([
-            'ormawa_id' => 2, // HIMA TI
+            'ormawa_id' => 2, // IKMADIKSI
             'nama_kegiatan' => 'Seminar Nasional Cybersecurity',
             'deskripsi' => 'Seminar nasional membahas keamanan siber di era digital.',
             'tanggal' => '2026-06-10',
@@ -105,9 +140,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $kegiatan2 = Kegiatan::create([
-            'ormawa_id' => 2, // HIMA TI
-            'nama_kegiatan' => 'TI Share & Care (Bakti Sosial)',
-            'deskripsi' => 'Kegiatan pengabdian masyarakat dari himpunan TI.',
+            'ormawa_id' => 2, // IKMADIKSI
+            'nama_kegiatan' => 'IKMADIKSI Share & Care (Bakti Sosial)',
+            'deskripsi' => 'Kegiatan pengabdian masyarakat dari himpunan IKMADIKSI.',
             'tanggal' => '2026-06-12',
             'waktu_mulai' => '08:00:00',
             'waktu_selesai' => '14:00:00',
@@ -115,7 +150,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $kegiatan3 = Kegiatan::create([
-            'ormawa_id' => 2, // HIMA TI
+            'ormawa_id' => 2, // IKMADIKSI
             'nama_kegiatan' => 'Workshop Laravel 12 & Live Coding',
             'deskripsi' => 'Pelatihan pembuatan web app berbasis Laravel 12.',
             'tanggal' => '2026-06-20',
@@ -124,9 +159,9 @@ class DatabaseSeeder extends Seeder
             'tempat' => 'Lab Komputer Terpadu',
         ]);
 
-        // Activities under BEM (ormawa_id: 1)
+        // Activities under MPM (ormawa_id: 1)
         Kegiatan::create([
-            'ormawa_id' => 1, // BEM
+            'ormawa_id' => 1, // MPM
             'nama_kegiatan' => 'Latihan Kepemimpinan Mahasiswa (LKM)',
             'deskripsi' => 'Pelatihan kepemimpinan dan manajemen organisasi tingkat dasar.',
             'tanggal' => '2026-06-15',

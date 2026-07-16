@@ -10,13 +10,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use OwenIt\Auditing\Contracts\Auditable;
 
-#[Fillable(['nama', 'email', 'password', 'role', 'ormawa_id'])]
+#[Fillable(['nama', 'email', 'password', 'role', 'ormawa_id', 'status_akun'])]
 #[Hidden(['password', 'remember_token'])]
-class Pengguna extends Authenticatable
+class Pengguna extends Authenticatable implements Auditable
 {
     /** @use HasFactory<PenggunaFactory> */
     use HasFactory, Notifiable;
+    use \OwenIt\Auditing\Auditable;
 
     /**
      * The table associated with the model.

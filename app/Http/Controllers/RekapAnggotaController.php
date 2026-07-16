@@ -22,26 +22,40 @@ class RekapAnggotaController extends Controller
     public function index()
     {
         $ormawaId = $this->getOrmawaId();
-        $students = Mahasiswa::with('pengguna')->where('ormawa_id', $ormawaId)->get();
+        $ormawa = Auth::user()->ormawa;
+        // Get students registered to this ormawa via pivot table
+        $students = $ormawa->mahasiswas()->with('pengguna')->get();
 
-        $totalKegiatan = Kegiatan::where('ormawa_id', $ormawaId)->count();
+        $kegiatanQuery = Kegiatan::where('ormawa_id', $ormawaId);
+        $totalKegiatan = (clone $kegiatanQuery)->count();
+        $totalPoinMaksimal = (clone $kegiatanQuery)->sum('bobot_poin');
         $rekapData = [];
 
         foreach ($students as $student) {
-            $totalHadir = Kehadiran::where('mahasiswa_id', $student->id)
+            $totalPoin = Kehadiran::where('mahasiswa_id', $student->id)
                 ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawaId))
-                ->where('status_kehadiran', 'Hadir')
+                ->whereIn('status_kehadiran', ['Hadir', 'Izin'])
                 ->where('status_verifikasi', 'Disetujui')
-                ->count();
+                ->with('kegiatan')
+                ->get()
+                ->sum(function ($kehadiran) {
+                    if ($kehadiran->status_kehadiran === 'Hadir') {
+                        return $kehadiran->kegiatan->bobot_poin ?? 0;
+                    } elseif ($kehadiran->status_kehadiran === 'Izin') {
+                        return ($kehadiran->kegiatan->bobot_poin ?? 0) / 2;
+                    }
+                    return 0;
+                });
 
-            $persentase = $totalKegiatan > 0 ? round(($totalHadir / $totalKegiatan) * 100, 1) : 0;
-            $statusKeaktifan = $persentase >= 60 ? 'AKTIF' : 'TIDAK AKTIF';
+            $persentase = $totalPoinMaksimal > 0 ? round(($totalPoin / $totalPoinMaksimal) * 100) : 0;
+            $statusKeaktifan = $persentase >= 75 ? 'AKTIF' : 'TIDAK AKTIF';
 
             $rekapData[] = [
                 'nama' => $student->pengguna->nama,
                 'nim' => $student->nim,
                 'prodi' => $student->prodi,
-                'total_hadir' => $totalHadir,
+                'total_poin_maks' => $totalPoinMaksimal,
+                'total_poin' => $totalPoin,
                 'total_kegiatan' => $totalKegiatan,
                 'persentase' => $persentase,
                 'status' => $statusKeaktifan,

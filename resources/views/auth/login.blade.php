@@ -13,83 +13,192 @@
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            background: linear-gradient(135deg, #0f141e 0%, #1a2333 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #f8fafc;
-            padding: 20px;
+            padding: 40px 20px;
         }
         .login-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: rgba(30, 37, 50, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 130, 246, 0.1);
             width: 100%;
-            max-width: 450px;
-            padding: 40px;
+            max-width: 440px;
+            padding: 48px;
+        }
+        .logo-container {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem auto;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .logo-container::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg);
+            animation: shine 3s infinite;
+        }
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 200%; }
+            100% { left: 200%; }
+        }
+        .logo-icon {
+            font-size: 2rem;
+            color: white;
+            z-index: 1;
+        }
+        .app-title {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .form-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
         }
         .form-control-custom {
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
+            color: #f8fafc;
             border-radius: 12px;
-            padding: 12px 16px;
-            transition: all 0.3s;
+            padding: 14px 16px;
+            transition: all 0.3s ease;
+            font-weight: 400;
+            font-size: 1rem;
         }
         .form-control-custom:focus {
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(255, 255, 255, 0.08);
             border-color: #3b82f6;
-            color: #fff;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+            color: #ffffff;
+        }
+        .form-control-custom::placeholder {
+            color: #475569;
         }
         .btn-custom {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
             border: none;
             color: white;
-            border-radius: 12px;
-            padding: 12px;
             font-weight: 600;
+            padding: 14px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
             transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.95rem;
         }
         .btn-custom:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
-            opacity: 0.95;
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            color: white;
         }
-        .demo-badge {
-            cursor: pointer;
-            transition: all 0.2s;
+        .link-custom {
+            color: #60a5fa;
+            text-decoration: none;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+        .link-custom:hover {
+            color: #93c5fd;
+        }
+        .text-divider {
+            display: flex;
+            align-items: center;
+            color: #64748b;
             font-size: 0.75rem;
-            margin-right: 5px;
-            margin-bottom: 5px;
-            display: inline-block;
+            margin: 2rem 0 1.5rem 0;
+            font-weight: 600;
         }
-        .demo-badge:hover {
-            transform: scale(1.05);
+        .text-divider::before, .text-divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .text-divider:not(:empty)::before {
+            margin-right: 1rem;
+        }
+        .text-divider:not(:empty)::after {
+            margin-left: 1rem;
+        }
+        .demo-btn {
+            border: none;
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: white;
+            margin: 0 4px;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .demo-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+        }
+        .demo-admin { background-color: #f43f5e; }
+        .demo-pengurus { background-color: #f59e0b; }
+        .demo-mahasiswa { background-color: #10b981; }
+        .demo-wadir { background-color: #0ea5e9; }
+        
+        .form-check-input {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .form-check-input:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .password-toggle {
+            cursor: pointer;
+            color: #64748b;
+            z-index: 5;
+        }
+        .password-toggle:hover {
+            color: #94a3b8;
         }
     </style>
 </head>
 <body>
     <div class="login-card">
-        <div class="text-center mb-4">
-            <div class="display-5 text-primary mb-2">
-                <i class="bi bi-mortarboard-fill text-white"></i>
+        <div class="text-center mb-4 pb-2">
+            <div class="logo-container">
+                <i class="bi bi-mortarboard-fill logo-icon"></i>
             </div>
-            <h3 class="fw-bold mb-1">KIP-K Monitor</h3>
-            <p class="text-muted">Monitoring Keaktifan Mahasiswa</p>
+            <h3 class="app-title">KIP-K Monitor</h3>
+            <p class="text-secondary small mb-0" style="color: #94a3b8 !important;">Sistem Manajemen Beasiswa & Ormawa</p>
         </div>
 
         @if(session('success'))
-            <div class="alert alert-success bg-success bg-opacity-20 border-success border-opacity-30 text-success rounded-3 mb-3" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <div class="alert rounded-3 mb-3 py-2 px-3 small d-flex align-items-center" style="background-color: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> <span>{{ session('success') }}</span>
             </div>
         @endif
 
         @if($errors->any())
-            <div class="alert alert-danger bg-danger bg-opacity-20 border-danger border-opacity-30 text-danger rounded-3 mb-3" role="alert">
+            <div class="alert alert-danger bg-danger border-danger text-white rounded-3 mb-3 py-2 px-3 small" role="alert">
                 <ul class="mb-0 ps-3">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -101,43 +210,35 @@
         <form action="{{ route('login') }}" method="POST">
             @csrf
             <div class="mb-3">
-                <label for="email" class="form-label text-muted small">Alamat Email</label>
-                <input type="email" name="email" id="email" class="form-control form-control-custom" placeholder="contoh@mail.com" value="{{ old('email') }}" required>
+                <label for="email" class="form-label">ALAMAT EMAIL</label>
+                <input type="email" name="email" id="email" class="form-control form-control-custom" placeholder="pengurus@mail.com" value="{{ old('email') }}" required>
             </div>
             <div class="mb-4">
-                <label for="password" class="form-label text-muted small">Kata Sandi</label>
+                <label for="password" class="form-label">KATA SANDI</label>
                 <div class="position-relative">
                     <input type="password" name="password" id="password" class="form-control form-control-custom pe-5" placeholder="••••••••" required>
-                    <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-muted" id="togglePassword" style="cursor: pointer;"></i>
+                    <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 password-toggle" id="togglePassword"></i>
                 </div>
             </div>
-            <div class="mb-3 d-flex justify-content-between align-items-center">
+            
+            <div class="mb-4 d-flex justify-content-between align-items-center">
                 <div class="form-check">
                     <input type="checkbox" name="remember" id="remember" class="form-check-input">
-                    <label class="form-check-label small text-muted" for="remember">Ingat Saya</label>
+                    <label class="form-check-label text-secondary small" for="remember" style="color: #94a3b8 !important;">Ingat Saya</label>
                 </div>
+                <a href="{{ route('password.request') }}" class="link-custom small">Lupa sandi?</a>
             </div>
-            <button type="submit" class="btn btn-custom w-100 mb-3">Masuk <i class="bi bi-box-arrow-in-right ms-1"></i></button>
+            
+            <button type="submit" class="btn btn-custom w-100 mb-4">Masuk <i class="bi bi-box-arrow-in-right ms-1"></i></button>
+            
+            <div class="text-center mb-2">
+                <span class="text-secondary small" style="color: #94a3b8 !important;">Belum memiliki akun?</span> <a href="{{ route('register') }}" class="link-custom small">Daftar Sekarang</a>
+            </div>
         </form>
-
-        <!-- Demo accounts quick access -->
-        <div class="mt-4 pt-3 border-top border-secondary border-opacity-30">
-            <small class="text-muted d-block mb-2 text-center">Akun Testing (Klik untuk Mengisi):</small>
-            <div class="d-flex flex-wrap justify-content-center">
-                <span class="badge bg-danger demo-badge" onclick="fillCred('admin@mail.com')">Admin</span>
-                <span class="badge bg-warning text-dark demo-badge" onclick="fillCred('pengurus@mail.com')">Pengurus</span>
-                <span class="badge bg-success demo-badge" onclick="fillCred('mahasiswa@mail.com')">Mahasiswa</span>
-                <span class="badge bg-info text-dark demo-badge" onclick="fillCred('wadir@mail.com')">Wadir</span>
-            </div>
-        </div>
     </div>
 
-    <script>
-        function fillCred(email) {
-            document.getElementById('email').value = email;
-            document.getElementById('password').value = 'password';
-        }
 
+    <script>
         document.getElementById('togglePassword').addEventListener('click', function (e) {
             const password = document.getElementById('password');
             const type = password.getAttribute('type') === 'password' ? 'text' : 'password';

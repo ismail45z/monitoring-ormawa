@@ -27,8 +27,10 @@
             <label class="form-label">Jenis Ormawa</label>
             <select name="jenis" class="form-select" required>
                 <option value="BEM" {{ old('jenis', $ormawa->jenis) == 'BEM' ? 'selected' : '' }}>BEM</option>
-                <option value="HIMA" {{ old('jenis', $ormawa->jenis) == 'HIMA' ? 'selected' : '' }}>HIMA</option>
+                <option value="HMJ" {{ old('jenis', $ormawa->jenis) == 'HMJ' ? 'selected' : '' }}>HMJ</option>
                 <option value="UKM" {{ old('jenis', $ormawa->jenis) == 'UKM' ? 'selected' : '' }}>UKM</option>
+                <option value="MPM" {{ old('jenis', $ormawa->jenis) == 'MPM' ? 'selected' : '' }}>MPM</option>
+                <option value="Independen" {{ old('jenis', $ormawa->jenis) == 'Independen' ? 'selected' : '' }}>Independen</option>
             </select>
         </div>
         <div class="mb-3">

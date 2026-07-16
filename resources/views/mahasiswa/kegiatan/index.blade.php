@@ -16,6 +16,8 @@
             <thead>
                 <tr>
                     <th>Nama Kegiatan</th>
+                    <th>Periode</th>
+                    <th>Bobot (Poin)</th>
                     <th>Tanggal</th>
                     <th>Waktu</th>
                     <th>Tempat</th>
@@ -27,6 +29,8 @@
                 @foreach($kegiatans as $kegiatan)
                     <tr>
                         <td><span class="fw-semibold">{{ $kegiatan->nama_kegiatan }}</span></td>
+                        <td><span class="badge bg-info text-dark">{{ $kegiatan->periode ?? '-' }}</span></td>
+                        <td><span class="badge bg-primary">{{ $kegiatan->bobot_poin }}</span></td>
                         <td>{{ \Carbon\Carbon::parse($kegiatan->tanggal)->translatedFormat('d F Y') }}</td>
                         <td>{{ \Carbon\Carbon::parse($kegiatan->waktu_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($kegiatan->waktu_selesai)->format('H:i') }}</td>
                         <td>{{ $kegiatan->tempat }}</td>
@@ -35,7 +39,7 @@
                             @if(in_array($kegiatan->id, $alreadyLogged))
                                 <span class="badge bg-secondary py-2 px-3 rounded-pill"><i class="bi bi-check-lg me-1"></i>Telah Dicatat</span>
                             @else
-                                <a href="{{ route('mahasiswa.kehadiran.catat.form', $kegiatan->id) }}" class="btn btn-sm btn-primary rounded-pill px-3"><i class="bi bi-pencil me-1"></i> Catat Kehadiran</a>
+                                <a href="{{ route('mahasiswa.kehadiran.catat', $kegiatan->id) }}" class="btn btn-sm btn-primary rounded-pill px-3"><i class="bi bi-pencil me-1"></i> Catat Kehadiran</a>
                             @endif
                         </td>
                     </tr>

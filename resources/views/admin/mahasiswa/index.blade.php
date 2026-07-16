@@ -8,8 +8,19 @@
         <a href="{{ route('admin.mahasiswa.create') }}" class="btn btn-gradient-primary rounded-pill"><i class="bi bi-plus-circle me-1"></i> Tambah Mahasiswa</a>
     </div>
 
+    <!-- Search Form -->
+    <form action="{{ route('admin.mahasiswa.index') }}" method="GET" class="mb-4">
+        <div class="input-group" style="max-width: 400px;">
+            <input type="text" name="search" class="form-control" placeholder="Cari NIM, Nama, atau Prodi..." value="{{ request('search') }}">
+            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+            @if(request('search'))
+                <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-outline-secondary">Reset</a>
+            @endif
+        </div>
+    </form>
+
     <div class="table-responsive">
-        <table class="table align-middle datatable">
+        <table class="table align-middle">
             <thead>
                 <tr>
                     <th>Nama</th>
@@ -23,7 +34,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($students as $student)
+                @forelse($students as $student)
                     <tr>
                         <td>
                             <div class="fw-semibold">{{ $student->pengguna->nama }}</div>
@@ -33,7 +44,13 @@
                         <td>{{ $student->no_kip }}</td>
                         <td>{{ $student->prodi }} ({{ $student->jurusan }})</td>
                         <td>{{ $student->angkatan }}</td>
-                        <td>{{ $student->ormawa ? $student->ormawa->nama_ormawa : '-' }}</td>
+                        <td>
+                            @forelse($student->ormawas as $orm)
+                                <span class="badge bg-primary me-1 mb-1">{{ $orm->nama_ormawa }}</span>
+                            @empty
+                                <span class="text-muted small">-</span>
+                            @endforelse
+                        </td>
                         <td>
                             <span class="badge bg-success">{{ $student->status_kip }}</span>
                         </td>
@@ -46,9 +63,17 @@
                             </form>
                         </td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">Tidak ada data mahasiswa ditemukan.</td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
+    </div>
+
+    <div class="d-flex justify-content-end mt-3">
+        {{ $students->links('pagination::bootstrap-5') }}
     </div>
 </div>
 @endsection

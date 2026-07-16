@@ -23,6 +23,16 @@
             <label class="form-label">Nama Kegiatan</label>
             <input type="text" name="nama_kegiatan" class="form-control" value="{{ old('nama_kegiatan', $kegiatan->nama_kegiatan) }}" required>
         </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Periode</label>
+                <input type="text" name="periode" class="form-control" value="{{ old('periode', $kegiatan->periode) }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Bobot (Poin)</label>
+                <input type="number" name="bobot_poin" class="form-control" value="{{ old('bobot_poin', $kegiatan->bobot_poin) }}" min="0" required>
+            </div>
+        </div>
         <div class="mb-3">
             <label class="form-label">Tanggal Pelaksanaan</label>
             <input type="date" name="tanggal" class="form-control" value="{{ old('tanggal', $kegiatan->tanggal) }}" required>

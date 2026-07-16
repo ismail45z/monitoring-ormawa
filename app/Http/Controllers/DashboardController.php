@@ -21,11 +21,11 @@ class DashboardController extends Controller
             return redirect()->route('login');
         }
         return match (Auth::user()->role) {
-            'admin' => redirect()->route('admin.dashboard'),
+            'admin'           => redirect()->route('admin.dashboard'),
             'pengurus_ormawa' => redirect()->route('pengurus.dashboard'),
-            'mahasiswa_kip' => redirect()->route('mahasiswa.dashboard'),
-            'wadir' => redirect()->route('wadir.dashboard'),
-            default => redirect()->route('login'),
+            'mahasiswa_kip'   => redirect()->route('mahasiswa.dashboard'),
+            'wadir'           => redirect()->route('wadir.dashboard'),
+            default           => redirect()->route('login'),
         };
     }
 
@@ -35,14 +35,14 @@ class DashboardController extends Controller
     public function adminDashboard()
     {
         $stats = [
-            'total_pengguna' => Pengguna::count(),
+            'total_pengguna'  => Pengguna::count(),
             'total_mahasiswa' => Mahasiswa::count(),
-            'total_ormawa' => Ormawa::count(),
-            'total_kegiatan' => Kegiatan::count(),
+            'total_ormawa'    => Ormawa::count(),
+            'total_kegiatan'  => Kegiatan::count(),
         ];
 
-        $recentUsers = Pengguna::with('ormawa')->orderBy('created_at', 'desc')->take(5)->get();
-        $recentActivities = Kegiatan::with('ormawa')->orderBy('created_at', 'desc')->take(5)->get();
+        $recentUsers       = Pengguna::with(['ormawa', 'mahasiswa.ormawas'])->orderBy('created_at', 'desc')->take(5)->get();
+        $recentActivities  = Kegiatan::with('ormawa')->orderBy('created_at', 'desc')->take(5)->get();
 
         return view('dashboard.admin', compact('stats', 'recentUsers', 'recentActivities'));
     }
@@ -52,23 +52,91 @@ class DashboardController extends Controller
      */
     public function pengurusDashboard()
     {
-        $user = Auth::user();
+        $user   = Auth::user();
         $ormawa = $user->ormawa;
 
         if (!$ormawa) {
             return view('dashboard.pengurus_ormawa', [
-                'ormawa' => null,
-                'totalKegiatan' => 0,
-                'totalAnggota' => 0,
+                'ormawa'           => null,
+                'totalKegiatan'    => 0,
+                'totalAnggota'     => 0,
                 'recentActivities' => collect(),
+                'pendingCount'     => 0,
+                'upcomingEvents'   => collect(),
+                'trendLabels'      => [],
+                'trendHadir'       => [],
+                'trendIzin'        => [],
+                'calendarEvents'   => [],
             ]);
         }
 
-        $totalKegiatan = Kegiatan::where('ormawa_id', $ormawa->id)->count();
-        $totalAnggota = Mahasiswa::where('ormawa_id', $ormawa->id)->count();
+        $totalKegiatan    = Kegiatan::where('ormawa_id', $ormawa->id)->count();
+        $totalAnggota     = $ormawa->mahasiswas()->count();
         $recentActivities = Kegiatan::where('ormawa_id', $ormawa->id)->orderBy('created_at', 'desc')->take(5)->get();
 
-        return view('dashboard.pengurus_ormawa', compact('ormawa', 'totalKegiatan', 'totalAnggota', 'recentActivities'));
+        // Pending verification count
+        $pendingCount = \App\Models\Kehadiran::whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawa->id))
+            ->where('status_verifikasi', 'Pending')
+            ->count();
+
+        // Upcoming events (next 7 days)
+        $upcomingEvents = Kegiatan::where('ormawa_id', $ormawa->id)
+            ->whereBetween('tanggal', [now()->toDateString(), now()->addDays(7)->toDateString()])
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        // Monthly attendance trend (last 6 months) for Chart.js
+        $trendLabels = [];
+        $trendHadir  = [];
+        $trendIzin   = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $month = now()->subMonths($i);
+            $trendLabels[] = $month->translatedFormat('M Y');
+            $trendHadir[]  = \App\Models\Kehadiran::whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawa->id))
+                ->where('status_kehadiran', 'Hadir')
+                ->whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)
+                ->count();
+            $trendIzin[]   = \App\Models\Kehadiran::whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawa->id))
+                ->where('status_kehadiran', 'Izin')
+                ->whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)
+                ->count();
+        }
+
+        // All events for calendar (FullCalendar format)
+        $calendarEvents = Kegiatan::where('ormawa_id', $ormawa->id)->get()->map(fn($k) => [
+            'id'    => $k->id,
+            'title' => $k->nama_kegiatan,
+            'start' => $k->tanggal,
+            'end'   => $k->tanggal,
+            'url'   => route('pengurus.kegiatan.show', $k->id),
+            'color' => \Carbon\Carbon::parse($k->tanggal)->isPast() ? '#6c757d' : '#4f46e5',
+        ])->values()->toArray();
+
+        return view('dashboard.pengurus_ormawa', compact(
+            'ormawa', 'totalKegiatan', 'totalAnggota', 'recentActivities',
+            'pendingCount', 'upcomingEvents', 'trendLabels', 'trendHadir', 'trendIzin', 'calendarEvents'
+        ));
+    }
+
+    /**
+     * Toggle open recruitment status for the Ormawa.
+     */
+    public function toggleRecruitment(Request $request)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'pengurus_ormawa' || !$user->ormawa) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $ormawa = $user->ormawa;
+        $ormawa->update([
+            'is_open_recruitment' => !$ormawa->is_open_recruitment
+        ]);
+
+        $status = $ormawa->is_open_recruitment ? 'dibuka' : 'ditutup';
+        return back()->with('success', "Pendaftaran anggota baru berhasil {$status}.");
     }
 
     /**
@@ -76,41 +144,54 @@ class DashboardController extends Controller
      */
     public function mahasiswaDashboard()
     {
-        $user = Auth::user();
+        $user      = Auth::user();
         $mahasiswa = $user->mahasiswa;
 
         if (!$mahasiswa) {
             return view('dashboard.mahasiswa_kip', [
-                'mahasiswa' => null,
-                'persentase' => 0,
-                'statusKeaktifan' => 'TIDAK AKTIF',
-                'recentPresence' => collect(),
+                'mahasiswa'       => null,
+                'rekapPerOrmawa'  => collect(),
+                'recentPresence'  => collect(),
             ]);
         }
 
-        $ormawaId = $mahasiswa->ormawa_id;
-        $totalKegiatan = 0;
-        $totalHadir = 0;
+        $ormawas = $mahasiswa->ormawas;
 
-        if ($ormawaId) {
-            $totalKegiatan = Kegiatan::where('ormawa_id', $ormawaId)->count();
-            $totalHadir = Kehadiran::where('mahasiswa_id', $mahasiswa->id)
-                ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawaId))
+        // Calculate keaktifan per ormawa for dashboard widgets
+        $rekapPerOrmawa = $ormawas->map(function ($ormawa) use ($mahasiswa) {
+            $totalKegiatan = Kegiatan::where('ormawa_id', $ormawa->id)->count();
+            $totalHadir    = Kehadiran::where('mahasiswa_id', $mahasiswa->id)
+                ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawa->id))
                 ->where('status_kehadiran', 'Hadir')
                 ->where('status_verifikasi', 'Disetujui')
                 ->count();
-        }
 
-        $persentase = $totalKegiatan > 0 ? round(($totalHadir / $totalKegiatan) * 100, 1) : 0;
-        $statusKeaktifan = $persentase >= 60 ? 'AKTIF' : 'TIDAK AKTIF';
+            $persentase      = $totalKegiatan > 0 ? round(($totalHadir / $totalKegiatan) * 100, 1) : 0;
+            $statusKeaktifan = $persentase >= 60 ? 'AKTIF' : 'TIDAK AKTIF';
 
-        $recentPresence = Kehadiran::with('kegiatan')
+            return [
+                'ormawa'          => $ormawa,
+                'totalKegiatan'   => $totalKegiatan,
+                'totalHadir'      => $totalHadir,
+                'persentase'      => $persentase,
+                'statusKeaktifan' => $statusKeaktifan,
+            ];
+        });
+
+        $recentPresence = Kehadiran::with('kegiatan.ormawa')
             ->where('mahasiswa_id', $mahasiswa->id)
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
-        return view('dashboard.mahasiswa_kip', compact('mahasiswa', 'persentase', 'statusKeaktifan', 'recentPresence'));
+        $pengumuman = \App\Models\Pengumuman::with('ormawa')
+            ->whereIn('ormawa_id', $ormawas->pluck('id'))
+            ->where('is_aktif', true)
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+
+        return view('dashboard.mahasiswa_kip', compact('mahasiswa', 'rekapPerOrmawa', 'recentPresence', 'pengumuman'));
     }
 
     /**
@@ -119,68 +200,85 @@ class DashboardController extends Controller
     public function wadirDashboard()
     {
         $totalMahasiswa = Mahasiswa::count();
-        $totalOrmawa = Ormawa::count();
+        $totalOrmawa    = Ormawa::count();
 
-        // Calculate active and inactive counts
-        $students = Mahasiswa::all();
-        $aktifCount = 0;
-        $tidakAktifCount = 0;
-        $watchlist = [];
+        // Calculate active and inactive — a student can appear in multiple ormawa entries
+        $students       = Mahasiswa::with('ormawas')->get();
+        $aktifCount     = 0;
+        $tidakAktifCount= 0;
+        $watchlist      = [];
+        $studentStatusMap = []; // track if student has been counted
 
         foreach ($students as $student) {
-            $ormawaId = $student->ormawa_id;
-            $totalKeg = 0;
-            $totalHad = 0;
+            $ormawas       = $student->ormawas;
+            $studentActive = true; // assume active unless proven inactive in any ormawa
 
-            if ($ormawaId) {
-                $totalKeg = Kegiatan::where('ormawa_id', $ormawaId)->count();
-                $totalHad = Kehadiran::where('mahasiswa_id', $student->id)
-                    ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawaId))
-                    ->where('status_kehadiran', 'Hadir')
+            foreach ($ormawas as $ormawa) {
+                $totalKeg = Kegiatan::where('ormawa_id', $ormawa->id)->count();
+                $totalPoinMaksimal = Kegiatan::where('ormawa_id', $ormawa->id)->sum('bobot_poin');
+                $totalPoin = Kehadiran::where('mahasiswa_id', $student->id)
+                    ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawa->id))
+                    ->whereIn('status_kehadiran', ['Hadir', 'Izin'])
                     ->where('status_verifikasi', 'Disetujui')
-                    ->count();
+                    ->with('kegiatan')
+                    ->get()
+                    ->sum(function ($kh) {
+                        return $kh->status_kehadiran === 'Hadir' ? ($kh->kegiatan->bobot_poin ?? 0) : (($kh->kegiatan->bobot_poin ?? 0) / 2);
+                    });
+
+                $persen = $totalPoinMaksimal > 0 ? round(($totalPoin / $totalPoinMaksimal) * 100) : 0;
+
+                if ($persen < 75) {
+                    $studentActive = false;
+                    // Add entry for this ormawa to watchlist
+                    $watchlist[] = [
+                        'student'        => $student,
+                        'ormawa'         => $ormawa->nama_ormawa,
+                        'total_poin_maks'=> $totalPoinMaksimal,
+                        'total_poin'     => $totalPoin,
+                        'total_kegiatan' => $totalKeg,
+                        'persentase'     => $persen,
+                    ];
+                }
             }
 
-            $persen = $totalKeg > 0 ? round(($totalHad / $totalKeg) * 100, 1) : 0;
-            $isActive = $persen >= 60;
-
-            if ($isActive) {
-                $aktifCount++;
-            } else {
-                $tidakAktifCount++;
-                // Add to watchlist (keaktifan < 60%)
-                $watchlist[] = [
-                    'student' => $student,
-                    'ormawa' => $student->ormawa ? $student->ormawa->nama_ormawa : 'Tidak Mengikuti',
-                    'total_kegiatan' => $totalKeg,
-                    'total_hadir' => $totalHad,
-                    'persentase' => $persen,
-                ];
+            // Count active/inactive per student (not per ormawa)
+            if (!isset($studentStatusMap[$student->id])) {
+                $studentStatusMap[$student->id] = true;
+                if ($studentActive) {
+                    $aktifCount++;
+                } else {
+                    $tidakAktifCount++;
+                }
             }
         }
 
         $persenAktifKeseluruhan = $totalMahasiswa > 0 ? round(($aktifCount / $totalMahasiswa) * 100, 1) : 0;
 
-        // Data for Chart.js: Keaktifan per Ormawa (Average attendance rate of registered students)
-        $ormawas = Ormawa::all();
+        // Data for Chart.js: average attendance rate per Ormawa
+        $ormawas     = Ormawa::all();
         $chartLabels = [];
-        $chartData = [];
+        $chartData   = [];
 
         foreach ($ormawas as $o) {
-            $chartLabels[] = $o->nama_ormawa;
-            $studentsInOrmawa = Mahasiswa::where('ormawa_id', $o->id)->get();
-            $sumPercentage = 0;
-            $totalStud = $studentsInOrmawa->count();
+            $chartLabels[]       = $o->nama_ormawa;
+            $studentsInOrmawa    = $o->mahasiswas;
+            $sumPercentage       = 0;
+            $totalStud           = $studentsInOrmawa->count();
 
             if ($totalStud > 0) {
-                $totalKeg = Kegiatan::where('ormawa_id', $o->id)->count();
+                $totalPoinMaksimal = Kegiatan::where('ormawa_id', $o->id)->sum('bobot_poin');
                 foreach ($studentsInOrmawa as $s) {
-                    $totalHad = Kehadiran::where('mahasiswa_id', $s->id)
+                    $totalPoin = Kehadiran::where('mahasiswa_id', $s->id)
                         ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $o->id))
-                        ->where('status_kehadiran', 'Hadir')
+                        ->whereIn('status_kehadiran', ['Hadir', 'Izin'])
                         ->where('status_verifikasi', 'Disetujui')
-                        ->count();
-                    $sPersen = $totalKeg > 0 ? ($totalHad / $totalKeg) * 100 : 0;
+                        ->with('kegiatan')
+                        ->get()
+                        ->sum(function ($kh) {
+                            return $kh->status_kehadiran === 'Hadir' ? ($kh->kegiatan->bobot_poin ?? 0) : (($kh->kegiatan->bobot_poin ?? 0) / 2);
+                        });
+                    $sPersen        = $totalPoinMaksimal > 0 ? round(($totalPoin / $totalPoinMaksimal) * 100) : 0;
                     $sumPercentage += $sPersen;
                 }
                 $avgPercentage = round($sumPercentage / $totalStud, 1);
