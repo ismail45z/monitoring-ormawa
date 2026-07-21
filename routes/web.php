@@ -16,13 +16,23 @@ use Illuminate\Support\Facades\Route;
 
 // Guest Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
 Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+
+// AJAX Route for Jurusan/Prodi
+Route::get('/api/prodi', function (\Illuminate\Http\Request $request) {
+    $jurusanName = $request->query('jurusan');
+    $jurusan = \App\Models\Jurusan::where('nama', $jurusanName)->first();
+    if ($jurusan) {
+        return response()->json($jurusan->prodis()->pluck('nama'));
+    }
+    return response()->json([]);
+})->name('api.prodi');
 
 // Authenticated Routes
 Route::middleware('auth')->group(function () {
@@ -56,6 +66,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:pengurus_ormawa')->prefix('pengurus')->name('pengurus.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'pengurusDashboard'])->name('dashboard');
         Route::post('/ormawa/toggle-recruitment', [DashboardController::class, 'toggleRecruitment'])->name('ormawa.toggle-recruitment');
+        Route::patch('/kegiatan/{kegiatan}/toggle-absensi', [KegiatanController::class, 'toggleAbsensi'])->name('kegiatan.toggle-absensi');
         Route::resource('kegiatan', KegiatanController::class);
 
         // Attendance Verification

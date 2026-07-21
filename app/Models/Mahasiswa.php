@@ -24,6 +24,15 @@ class Mahasiswa extends Model implements Auditable
     protected $table = 'mahasiswa';
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'no_kip' => 'encrypted',
+    ];
+
+    /**
      * Get the user account details for this student.
      */
     public function pengguna(): BelongsTo
@@ -32,12 +41,36 @@ class Mahasiswa extends Model implements Auditable
     }
 
     /**
-     * Get all ormawas this student is registered in (Many-to-Many).
+     * Get all memberships for this student.
      */
-    public function ormawas(): BelongsToMany
+    public function keanggotaans(): HasMany
     {
-        return $this->belongsToMany(Ormawa::class, 'mahasiswa_ormawa', 'mahasiswa_id', 'ormawa_id')
-            ->withTimestamps();
+        return $this->hasMany(Keanggotaan::class, 'mahasiswa_id');
+    }
+
+    /**
+     * Get the timeline of attendance (history).
+     */
+    public function timelineKehadiran()
+    {
+        return $this->kehadiran()->with(['kegiatan', 'kegiatan.ormawa'])->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Check if the student's profile is complete.
+     * At registration, dummy values ('-') are used.
+     */
+    public function isProfileComplete(): bool
+    {
+        if (
+            empty($this->jurusan) || $this->jurusan === '-' ||
+            empty($this->prodi) || $this->prodi === '-' ||
+            empty($this->no_kip) || $this->no_kip === '-'
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -46,5 +79,15 @@ class Mahasiswa extends Model implements Auditable
     public function kehadiran(): HasMany
     {
         return $this->hasMany(Kehadiran::class, 'mahasiswa_id');
+    }
+
+    /**
+     * Get the ormawas for this student.
+     */
+    public function ormawas(): BelongsToMany
+    {
+        return $this->belongsToMany(Ormawa::class, 'keanggotaans', 'mahasiswa_id', 'ormawa_id')
+                    ->withPivot(['periode_id', 'jabatan_id', 'tgl_masuk', 'tgl_selesai', 'status'])
+                    ->withTimestamps();
     }
 }

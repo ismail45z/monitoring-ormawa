@@ -28,27 +28,36 @@ class RekapAnggotaController extends Controller
 
         $kegiatanQuery = Kegiatan::where('ormawa_id', $ormawaId);
         $totalKegiatan = (clone $kegiatanQuery)->count();
-        $totalPoinMaksimal = (clone $kegiatanQuery)->sum('bobot_poin');
+        $totalPoinMaksimal = (clone $kegiatanQuery)->sum('poin');
         $rekapData = [];
 
         foreach ($students as $student) {
-            $totalPoin = Kehadiran::where('mahasiswa_id', $student->id)
+            $totalPoin = Kehadiran::whereHas('keanggotaan', fn($q) => $q->where('mahasiswa_id', $student->id))
                 ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawaId))
-                ->whereIn('status_kehadiran', ['Hadir', 'Izin'])
+                ->whereIn('status_kehadiran', ['Hadir', 'Izin', 'Sakit'])
                 ->where('status_verifikasi', 'Disetujui')
                 ->with('kegiatan')
                 ->get()
                 ->sum(function ($kehadiran) {
                     if ($kehadiran->status_kehadiran === 'Hadir') {
-                        return $kehadiran->kegiatan->bobot_poin ?? 0;
-                    } elseif ($kehadiran->status_kehadiran === 'Izin') {
-                        return ($kehadiran->kegiatan->bobot_poin ?? 0) / 2;
+                        return $kehadiran->kegiatan->poin ?? 0;
+                    } elseif (in_array($kehadiran->status_kehadiran, ['Izin', 'Sakit'])) {
+                        return ($kehadiran->kegiatan->poin ?? 0) / 2;
                     }
                     return 0;
                 });
 
             $persentase = $totalPoinMaksimal > 0 ? round(($totalPoin / $totalPoinMaksimal) * 100) : 0;
-            $statusKeaktifan = $persentase >= 75 ? 'AKTIF' : 'TIDAK AKTIF';
+            
+            if ($persentase >= 80) {
+                $statusKeaktifan = 'Sangat Aktif';
+            } elseif ($persentase >= 60) {
+                $statusKeaktifan = 'Aktif';
+            } elseif ($persentase >= 40) {
+                $statusKeaktifan = 'Cukup';
+            } else {
+                $statusKeaktifan = 'Tidak Aktif';
+            }
 
             $rekapData[] = [
                 'nama' => $student->pengguna->nama,

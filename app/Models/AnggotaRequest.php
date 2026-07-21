@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['ormawa_id', 'mahasiswa_id', 'tipe', 'status', 'catatan', 'catatan_pengurus', 'pemroses_id', 'processed_at'])]
+#[Fillable(['ormawa_id', 'mahasiswa_id', 'status', 'catatan', 'catatan_pengurus', 'pemroses_id', 'processed_at', 'cooldown_hari', 'is_permanen'])]
 class AnggotaRequest extends Model
 {
     use HasFactory;

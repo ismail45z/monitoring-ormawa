@@ -17,6 +17,16 @@ class KegiatanController extends Controller
         return $ormawa->id;
     }
 
+    public function create()
+    {
+        return redirect()->route('pengurus.kegiatan.index');
+    }
+
+    public function edit(Kegiatan $kegiatan)
+    {
+        return redirect()->route('pengurus.kegiatan.index');
+    }
+
     public function index(Request $request)
     {
         $ormawaId = $this->getOrmawaId();
@@ -37,13 +47,9 @@ class KegiatanController extends Controller
         }
 
         $kegiatans = $query->orderBy('tanggal', 'desc')->paginate(15)->withQueryString();
+        $periodes = \App\Models\Periode::all();
         
-        return view('pengurus.kegiatan.index', compact('kegiatans'));
-    }
-
-    public function create()
-    {
-        return view('pengurus.kegiatan.create');
+        return view('pengurus.kegiatan.index', compact('kegiatans', 'periodes'));
     }
 
     public function store(Request $request)
@@ -57,8 +63,9 @@ class KegiatanController extends Controller
             'waktu_mulai' => 'required',
             'waktu_selesai' => 'required',
             'tempat' => 'required|string|max:255',
-            'periode' => 'required|string|max:255',
-            'bobot_poin' => 'required|integer|min:0',
+            'jenis' => 'nullable|string|max:255',
+            'periode_id' => 'required|exists:periodes,id',
+            'poin' => 'required|integer|min:0',
         ]);
 
         $validated['ormawa_id'] = $ormawaId;
@@ -75,22 +82,12 @@ class KegiatanController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $kegiatan->load('kehadiran.mahasiswa.pengguna');
+        $kegiatan->load('kehadiran.keanggotaan.mahasiswa.pengguna');
         $totalPeserta  = $kegiatan->kehadiran->count();
         $totalHadir    = $kegiatan->kehadiran->where('status_kehadiran', 'Hadir')->where('status_verifikasi', 'Disetujui')->count();
         $totalPending  = $kegiatan->kehadiran->where('status_verifikasi', 'Pending')->count();
 
         return view('pengurus.kegiatan.show', compact('kegiatan', 'totalPeserta', 'totalHadir', 'totalPending'));
-    }
-
-    public function edit(Kegiatan $kegiatan)
-    {
-        $ormawaId = $this->getOrmawaId();
-        if ($kegiatan->ormawa_id !== $ormawaId) {
-            abort(403, 'Unauthorized action.');
-        }
-
-        return view('pengurus.kegiatan.edit', compact('kegiatan'));
     }
 
     public function update(Request $request, Kegiatan $kegiatan)
@@ -107,8 +104,9 @@ class KegiatanController extends Controller
             'waktu_mulai' => 'required',
             'waktu_selesai' => 'required',
             'tempat' => 'required|string|max:255',
-            'periode' => 'required|string|max:255',
-            'bobot_poin' => 'required|integer|min:0',
+            'jenis' => 'nullable|string|max:255',
+            'periode_id' => 'required|exists:periodes,id',
+            'poin' => 'required|integer|min:0',
         ]);
 
         $kegiatan->update($validated);
@@ -126,5 +124,21 @@ class KegiatanController extends Controller
         $kegiatan->delete();
 
         return redirect()->route('pengurus.kegiatan.index')->with('success', 'Kegiatan berhasil dihapus.');
+    }
+
+    public function toggleAbsensi(Request $request, Kegiatan $kegiatan)
+    {
+        $ormawaId = $this->getOrmawaId();
+        if ($kegiatan->ormawa_id !== $ormawaId) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'status_absensi' => 'required|in:auto,buka,tutup',
+        ]);
+
+        $kegiatan->update(['status_absensi' => $request->status_absensi]);
+
+        return redirect()->back()->with('success', 'Status absensi berhasil diubah menjadi ' . ucfirst($request->status_absensi) . '.');
     }
 }

@@ -56,31 +56,44 @@ class WadirReportController extends Controller
             // Hitung total kegiatan dari semua ormawa yang diikuti
             $kegiatanQuery = Kegiatan::whereIn('ormawa_id', $ormawaIds);
             if ($startDate) $kegiatanQuery->where('tanggal', '>=', $startDate);
-            if ($endDate)   $kegiatanQuery->where('tanggal', '<=', $endDate);
+            
+            // Batasi hingga hari ini agar kegiatan yang belum terjadi tidak mengurangi persentase
+            $effectiveEndDate = $endDate ? min($endDate, now()->toDateString()) : now()->toDateString();
+            $kegiatanQuery->where('tanggal', '<=', $effectiveEndDate);
+            
             $totalKegiatan = (clone $kegiatanQuery)->count();
-            $totalPoinMaksimal = (clone $kegiatanQuery)->sum('bobot_poin');
+            $totalPoinMaksimal = (clone $kegiatanQuery)->sum('poin');
 
             // Hitung total poin kehadiran yang sudah diverifikasi
-            $hadirQuery = Kehadiran::where('mahasiswa_id', $student->id)
-                ->whereIn('status_kehadiran', ['Hadir', 'Izin'])
+            $hadirQuery = Kehadiran::whereHas('keanggotaan', fn($q) => $q->where('mahasiswa_id', $student->id))
+                ->whereIn('status_kehadiran', ['Hadir', 'Izin', 'Sakit'])
                 ->where('status_verifikasi', 'Disetujui')
-                ->whereHas('kegiatan', function ($q) use ($ormawaIds, $startDate, $endDate) {
+                ->whereHas('kegiatan', function ($q) use ($ormawaIds, $startDate, $effectiveEndDate) {
                     $q->whereIn('ormawa_id', $ormawaIds);
                     if ($startDate) $q->where('tanggal', '>=', $startDate);
-                    if ($endDate)   $q->where('tanggal', '<=', $endDate);
+                    $q->where('tanggal', '<=', $effectiveEndDate);
                 });
 
             $totalPoin = $hadirQuery->with('kegiatan')->get()->sum(function ($kehadiran) {
                 if ($kehadiran->status_kehadiran === 'Hadir') {
-                    return $kehadiran->kegiatan->bobot_poin ?? 0;
-                } elseif ($kehadiran->status_kehadiran === 'Izin') {
-                    return ($kehadiran->kegiatan->bobot_poin ?? 0) / 2;
+                    return $kehadiran->kegiatan->poin ?? 0;
+                } elseif (in_array($kehadiran->status_kehadiran, ['Izin', 'Sakit'])) {
+                    return ($kehadiran->kegiatan->poin ?? 0) / 2;
                 }
                 return 0;
             });
 
             $persentase = $totalPoinMaksimal > 0 ? round(($totalPoin / $totalPoinMaksimal) * 100) : 0;
-            $status = $persentase >= 75 ? 'AKTIF' : 'TIDAK AKTIF';
+            
+            if ($persentase >= 80) {
+                $status = 'Sangat Aktif';
+            } elseif ($persentase >= 60) {
+                $status = 'Aktif';
+            } elseif ($persentase >= 40) {
+                $status = 'Cukup';
+            } else {
+                $status = 'Tidak Aktif';
+            }
 
             $reportData[] = [
                 'nama'           => $student->pengguna->nama ?? '-',

@@ -27,11 +27,6 @@ class PengumumanController extends Controller
         return view('pengurus.pengumuman.index', compact('pengumuman'));
     }
 
-    public function create()
-    {
-        return view('pengurus.pengumuman.create');
-    }
-
     public function store(Request $request)
     {
         $ormawa = $this->getOrmawa();
@@ -53,16 +48,6 @@ class PengumumanController extends Controller
         Pengumuman::create($validated);
 
         return redirect()->route('pengurus.pengumuman.index')->with('success', 'Pengumuman berhasil ditambahkan.');
-    }
-
-    public function edit(Pengumuman $pengumuman)
-    {
-        $ormawa = $this->getOrmawa();
-        if ($pengumuman->ormawa_id !== $ormawa->id) {
-            abort(403);
-        }
-
-        return view('pengurus.pengumuman.edit', compact('pengumuman'));
     }
 
     public function update(Request $request, Pengumuman $pengumuman)

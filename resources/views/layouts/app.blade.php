@@ -142,6 +142,15 @@
             transform: scale(1.02);
             color: white;
         }
+        /* Image Popup Style */
+        .img-popup {
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .img-popup:hover {
+            transform: scale(1.02);
+            opacity: 0.9;
+        }
     </style>
     @yield('styles')
 </head>
@@ -348,6 +357,20 @@
         </div>
     </div>
 
+    <!-- Global Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                    <img src="" id="imageModalSrc" class="img-fluid rounded shadow-lg" alt="Preview Image" style="max-height: 85vh; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Script imports -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -386,6 +409,17 @@
                     themeIcon.removeClass('bi-moon-fill').addClass('bi-sun-fill');
                 } else {
                     themeIcon.removeClass('bi-sun-fill').addClass('bi-moon-fill');
+                }
+            });
+
+            // Global Image Popup Logic
+            $(document).on('click', '.img-popup', function(e) {
+                const src = $(this).attr('src') || $(this).data('src');
+                if (src) {
+                    e.preventDefault();
+                    $('#imageModalSrc').attr('src', src);
+                    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+                    imageModal.show();
                 }
             });
         });

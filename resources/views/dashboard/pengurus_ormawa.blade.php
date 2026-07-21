@@ -213,7 +213,7 @@
                 </div>
                 <hr>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('pengurus.kegiatan.create') }}" class="btn btn-gradient-primary btn-sm flex-fill rounded-pill">
+                    <a href="{{ route('pengurus.kegiatan.index') }}" class="btn btn-gradient-primary btn-sm flex-fill rounded-pill">
                         <i class="bi bi-plus-circle me-1"></i> Tambah Kegiatan
                     </a>
                     <a href="{{ route('pengurus.kehadiran.index') }}" class="btn btn-outline-warning btn-sm flex-fill rounded-pill">

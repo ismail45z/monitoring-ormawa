@@ -39,7 +39,7 @@ class MahasiswaFeaturesController extends Controller
             ->get();
 
         // Get activities they already logged attendance for
-        $alreadyLogged = Kehadiran::where('mahasiswa_id', $mahasiswa->id)
+        $alreadyLogged = Kehadiran::whereHas('keanggotaan', fn($q) => $q->where('mahasiswa_id', $mahasiswa->id))
             ->pluck('kegiatan_id')
             ->toArray();
 
@@ -55,8 +55,16 @@ class MahasiswaFeaturesController extends Controller
             abort(403, 'Kegiatan ini diselenggarakan oleh Ormawa yang tidak Anda ikuti.');
         }
 
+        if ($kegiatan->isAttendanceNotYetOpen()) {
+            return redirect()->route('mahasiswa.kegiatan.index')->with('error', 'Waktu pencatatan kehadiran untuk kegiatan ini belum dimulai.');
+        }
+
+        if (!$kegiatan->isAttendanceOpen()) {
+            return redirect()->route('mahasiswa.kegiatan.index')->with('error', 'Pencatatan kehadiran untuk kegiatan ini sudah ditutup.');
+        }
+
         // Check if attendance is already recorded
-        $exists = Kehadiran::where('mahasiswa_id', $mahasiswa->id)
+        $exists = Kehadiran::whereHas('keanggotaan', fn($q) => $q->where('mahasiswa_id', $mahasiswa->id))
             ->where('kegiatan_id', $kegiatan->id)
             ->first();
 
@@ -76,8 +84,16 @@ class MahasiswaFeaturesController extends Controller
             abort(403, 'Kegiatan ini diselenggarakan oleh Ormawa yang tidak Anda ikuti.');
         }
 
+        if ($kegiatan->isAttendanceNotYetOpen()) {
+            return redirect()->route('mahasiswa.kegiatan.index')->with('error', 'Waktu pencatatan kehadiran untuk kegiatan ini belum dimulai.');
+        }
+
+        if (!$kegiatan->isAttendanceOpen()) {
+            return redirect()->route('mahasiswa.kegiatan.index')->with('error', 'Pencatatan kehadiran untuk kegiatan ini sudah ditutup.');
+        }
+
         // Check again
-        $exists = Kehadiran::where('mahasiswa_id', $mahasiswa->id)
+        $exists = Kehadiran::whereHas('keanggotaan', fn($q) => $q->where('mahasiswa_id', $mahasiswa->id))
             ->where('kegiatan_id', $kegiatan->id)
             ->first();
 
@@ -96,9 +112,14 @@ class MahasiswaFeaturesController extends Controller
             $buktiFotoPath = $request->file('bukti_foto')->store('bukti_kehadiran', 'public');
         }
 
+        $keanggotaan = \App\Models\Keanggotaan::where('mahasiswa_id', $mahasiswa->id)->where('ormawa_id', $kegiatan->ormawa_id)->first();
+        if (!$keanggotaan) {
+            return redirect()->route('mahasiswa.riwayat')->with('error', 'Anda belum menjadi anggota Ormawa ini.');
+        }
+
         Kehadiran::create([
             'kegiatan_id'     => $kegiatan->id,
-            'mahasiswa_id'    => $mahasiswa->id,
+            'keanggotaan_id'  => $keanggotaan->id,
             'status_kehadiran'=> $validated['status_kehadiran'],
             'status_verifikasi' => 'Pending',
             'keterangan'      => $validated['keterangan'],
@@ -112,7 +133,7 @@ class MahasiswaFeaturesController extends Controller
     {
         $mahasiswa = $this->getMahasiswa();
         $kehadirans = Kehadiran::with('kegiatan.ormawa')
-            ->where('mahasiswa_id', $mahasiswa->id)
+            ->whereHas('keanggotaan', fn($q) => $q->where('mahasiswa_id', $mahasiswa->id))
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -130,38 +151,10 @@ class MahasiswaFeaturesController extends Controller
             ]);
         }
 
-        // Calculate rekap per ormawa separately
-        $rekapPerOrmawa = $ormawas->map(function ($ormawa) use ($mahasiswa) {
-            $kegiatanQuery = Kegiatan::where('ormawa_id', $ormawa->id);
-            $totalKegiatan = (clone $kegiatanQuery)->count();
-            $totalPoinMaksimal = (clone $kegiatanQuery)->sum('bobot_poin');
-            $kehadiranDisetujui = Kehadiran::where('mahasiswa_id', $mahasiswa->id)
-                ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawa->id))
-                ->whereIn('status_kehadiran', ['Hadir', 'Izin'])
-                ->where('status_verifikasi', 'Disetujui')
-                ->with('kegiatan')
-                ->get();
-
-            $totalPoin = $kehadiranDisetujui->sum(function ($kh) {
-                if ($kh->status_kehadiran === 'Hadir') {
-                    return $kh->kegiatan->bobot_poin ?? 0;
-                } elseif ($kh->status_kehadiran === 'Izin') {
-                    return ($kh->kegiatan->bobot_poin ?? 0) / 2;
-                }
-                return 0;
-            });
-
-            $persentase = $totalPoinMaksimal > 0 ? round(($totalPoin / $totalPoinMaksimal) * 100) : 0;
-            $statusKeaktifan = $persentase >= 75 ? 'AKTIF' : 'TIDAK AKTIF';
-
-            return [
-                'ormawa'          => $ormawa,
-                'totalKegiatan'   => $totalKegiatan,
-                'totalPoinMaks'   => $totalPoinMaksimal,
-                'totalPoin'       => $totalPoin,
-                'persentase'      => $persentase,
-                'statusKeaktifan' => $statusKeaktifan,
-            ];
+        // Calculate rekap per ormawa using KeaktifanService
+        $keaktifanService = new \App\Services\KeaktifanService();
+        $rekapPerOrmawa = $ormawas->map(function ($ormawa) use ($mahasiswa, $keaktifanService) {
+            return $keaktifanService->hitungRekap($mahasiswa, $ormawa);
         });
 
         return view('mahasiswa.rekap.index', compact('rekapPerOrmawa'));
@@ -187,18 +180,21 @@ class MahasiswaFeaturesController extends Controller
             $kegiatanQuery->where('ormawa_id', $selectedOrmawaId);
         }
 
-        $periodes = (clone $kegiatanQuery)
-            ->select('periode')
+        $periodeIds = (clone $kegiatanQuery)
+            ->whereNotNull('periode_id')
             ->distinct()
-            ->orderBy('periode', 'desc')
-            ->pluck('periode');
+            ->pluck('periode_id');
+            
+        $periodes = \App\Models\Periode::whereIn('id', $periodeIds)
+            ->orderBy('tanggal_mulai', 'desc')
+            ->get();
 
-        $selectedPeriode = $request->input('periode', $periodes->first());
+        $selectedPeriode = $request->input('periode_id', $periodes->first()->id ?? null);
 
-        $kegiatansQuery = (clone $kegiatanQuery)->with('ormawa')->orderBy('tanggal', 'asc')->orderBy('waktu_mulai', 'asc');
+        $kegiatansQuery = (clone $kegiatanQuery)->with(['ormawa', 'periode'])->orderBy('tanggal', 'asc')->orderBy('waktu_mulai', 'asc');
 
         if ($selectedPeriode) {
-            $kegiatansQuery->where('periode', $selectedPeriode);
+            $kegiatansQuery->where('periode_id', $selectedPeriode);
         }
 
         $kegiatans = $kegiatansQuery->get();
@@ -210,13 +206,14 @@ class MahasiswaFeaturesController extends Controller
     {
         $mahasiswa = $this->getMahasiswa();
         $ormawas = \App\Models\Ormawa::all();
+        $isProfileComplete = $mahasiswa->isProfileComplete();
         
-        // Get all pending requests for this student
-        $pendingRequests = \App\Models\AnggotaRequest::where('mahasiswa_id', $mahasiswa->id)
-            ->where('status', 'pending')
+        // Get all requests for this student (pending, disetujui, ditolak)
+        $riwayatRequests = \App\Models\AnggotaRequest::where('mahasiswa_id', $mahasiswa->id)
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('mahasiswa.pendaftaran.index', compact('ormawas', 'mahasiswa', 'pendingRequests'));
+        return view('mahasiswa.pendaftaran.index', compact('ormawas', 'mahasiswa', 'riwayatRequests', 'isProfileComplete'));
     }
 
     public function daftarOrmawa(Request $request)
@@ -227,6 +224,11 @@ class MahasiswaFeaturesController extends Controller
         ]);
 
         $mahasiswa = $this->getMahasiswa();
+        
+        if (!$mahasiswa->isProfileComplete()) {
+            return back()->with('error', 'Silakan lengkapi data profil Anda (Jurusan, Program Studi, dll) terlebih dahulu sebelum mendaftar.');
+        }
+
         $ormawaId = $request->ormawa_id;
 
         $ormawa = \App\Models\Ormawa::findOrFail($ormawaId);
@@ -234,19 +236,47 @@ class MahasiswaFeaturesController extends Controller
             return back()->with('error', 'Maaf, pendaftaran anggota baru untuk Ormawa ini sedang ditutup.');
         }
 
+        // Cek Pembatasan Jurusan / Prodi
+        if ($ormawa->kategori_jurusan && $mahasiswa->jurusan !== $ormawa->kategori_jurusan) {
+            return back()->with('error', "Maaf, pendaftaran Ormawa ini dibatasi hanya untuk mahasiswa dengan Jurusan {$ormawa->kategori_jurusan}.");
+        }
+
+        if ($ormawa->kategori_prodi && $mahasiswa->prodi !== $ormawa->kategori_prodi) {
+            return back()->with('error', "Maaf, pendaftaran Ormawa ini dibatasi hanya untuk mahasiswa dengan Program Studi {$ormawa->kategori_prodi}.");
+        }
+
         // Cek apakah sudah tergabung
         if ($mahasiswa->ormawas->contains($ormawaId)) {
             return back()->with('error', 'Anda sudah terdaftar di Ormawa ini.');
         }
 
-        // Cek apakah sudah ada request pending
+        // Cek apakah sudah ada request pending atau ditolak (untuk mengecek jeda/permanen)
         $existingRequest = \App\Models\AnggotaRequest::where('mahasiswa_id', $mahasiswa->id)
             ->where('ormawa_id', $ormawaId)
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'ditolak'])
+            ->orderBy('created_at', 'desc')
             ->first();
 
         if ($existingRequest) {
-            return back()->with('error', 'Anda sudah memiliki permintaan bergabung yang sedang menunggu persetujuan untuk Ormawa ini.');
+            if ($existingRequest->status === 'pending') {
+                return back()->with('error', 'Anda sudah memiliki permintaan bergabung yang sedang menunggu persetujuan untuk Ormawa ini.');
+            }
+
+            if ($existingRequest->status === 'ditolak') {
+                if ($existingRequest->is_permanen) {
+                    return back()->with('error', 'Pendaftaran Anda ke Ormawa ini telah ditolak secara permanen.');
+                }
+                
+                if ($existingRequest->cooldown_hari !== null && $existingRequest->cooldown_hari > 0) {
+                    $processedAt = \Carbon\Carbon::parse($existingRequest->processed_at ?? $existingRequest->updated_at);
+                    $daysPassed = $processedAt->diffInDays(now());
+                    
+                    if ($daysPassed < $existingRequest->cooldown_hari) {
+                        $sisaHari = $existingRequest->cooldown_hari - (int) $daysPassed;
+                        return back()->with('error', "Pendaftaran Anda sebelumnya ditolak. Anda baru dapat mendaftar lagi ke Ormawa ini dalam $sisaHari hari.");
+                    }
+                }
+            }
         }
 
         // Buat request baru

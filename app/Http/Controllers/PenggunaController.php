@@ -25,16 +25,11 @@ class PenggunaController extends Controller
         }
 
         $pendingCount = Pengguna::where('status_akun', 'pending')->count();
+        $ormawas = Ormawa::all(); // Fetched for the Add User modal
 
         $users = $query->paginate(15)->withQueryString();
         
-        return view('admin.pengguna.index', compact('users', 'pendingCount'));
-    }
-
-    public function create()
-    {
-        $ormawas = Ormawa::all();
-        return view('admin.pengguna.create', compact('ormawas'));
+        return view('admin.pengguna.index', compact('users', 'pendingCount', 'ormawas'));
     }
 
     public function store(Request $request)
@@ -60,12 +55,6 @@ class PenggunaController extends Controller
     public function show(Pengguna $pengguna)
     {
         return view('admin.pengguna.show', compact('pengguna'));
-    }
-
-    public function edit(Pengguna $pengguna)
-    {
-        $ormawas = Ormawa::all();
-        return view('admin.pengguna.edit', compact('pengguna', 'ormawas'));
     }
 
     public function update(Request $request, Pengguna $pengguna)

@@ -3,7 +3,7 @@
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-12">
         <div class="card card-custom p-4">
             <h4 class="fw-bold mb-4"><i class="bi bi-person-lines-fill text-primary me-2"></i>Pengaturan Profil</h4>
 
@@ -24,12 +24,12 @@
                 <div class="text-center mb-4">
                     <div class="position-relative d-inline-block">
                         @if($user->foto)
-                            <img src="{{ asset('storage/' . $user->foto) }}" id="fotoPreview" alt="Profile Photo" class="rounded-circle border border-3 border-primary shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">
+                            <img src="{{ asset('storage/' . $user->foto) }}" id="fotoPreview" alt="Profile Photo" class="rounded-circle border border-3 border-primary shadow-sm img-popup" style="width: 120px; height: 120px; object-fit: cover;">
                         @else
                             <div id="fotoPlaceholder" class="rounded-circle bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center text-secondary border border-3 border-secondary shadow-sm" style="width: 120px; height: 120px; font-size: 3rem;">
                                 <i class="bi bi-person"></i>
                             </div>
-                            <img src="" id="fotoPreview" alt="Profile Photo" class="rounded-circle border border-3 border-primary shadow-sm d-none" style="width: 120px; height: 120px; object-fit: cover;">
+                            <img src="" id="fotoPreview" alt="Profile Photo" class="rounded-circle border border-3 border-primary shadow-sm d-none img-popup" style="width: 120px; height: 120px; object-fit: cover;">
                         @endif
                         
                         <label for="foto" class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow" style="cursor: pointer; transform: translate(10%, 10%); transition: all 0.2s;" onmouseover="this.style.transform='translate(10%, 10%) scale(1.1)'" onmouseout="this.style.transform='translate(10%, 10%) scale(1)'">
@@ -86,18 +86,20 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Nomor KIP-Kuliah</label>
-                            <input type="text" name="no_kip" class="form-control" value="{{ old('no_kip', $user->mahasiswa->no_kip) }}" required maxlength="6" minlength="6" pattern="\d{6}" title="Nomor KIP-Kuliah harus berupa 6 digit angka">
+                            <input type="text" name="no_kip" class="form-control" value="{{ old('no_kip', $user->mahasiswa->no_kip) }}" required>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Jurusan</label>
-                            <input type="text" name="jurusan" class="form-control" value="{{ old('jurusan', $user->mahasiswa->jurusan) }}" required>
+                            <input type="text" class="form-control bg-light" value="{{ $user->mahasiswa->jurusan }}" disabled readonly>
+                            <input type="hidden" name="jurusan" value="{{ $user->mahasiswa->jurusan }}">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Program Studi</label>
-                            <input type="text" name="prodi" class="form-control" value="{{ old('prodi', $user->mahasiswa->prodi) }}" required>
+                            <input type="text" class="form-control bg-light" value="{{ $user->mahasiswa->prodi }}" disabled readonly>
+                            <input type="hidden" name="prodi" value="{{ $user->mahasiswa->prodi }}">
                         </div>
                     </div>
 
@@ -110,7 +112,7 @@
                         <label class="form-label">Bukti Kartu KIP-Kuliah</label>
                         @if($user->mahasiswa->bukti_kip)
                             <div class="mb-2">
-                                <img src="{{ asset('storage/' . $user->mahasiswa->bukti_kip) }}" alt="Bukti KIP" class="img-thumbnail shadow-sm" style="max-height: 200px; object-fit: contain;">
+                                <img src="{{ asset('storage/' . $user->mahasiswa->bukti_kip) }}" alt="Bukti KIP" class="img-thumbnail shadow-sm img-popup" style="max-height: 200px; object-fit: contain;">
                             </div>
                         @endif
                         <input type="file" name="bukti_kip" class="form-control" accept="image/jpeg,image/png,image/jpg,image/gif">

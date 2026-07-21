@@ -10,12 +10,8 @@ class OrmawaController extends Controller
     public function index()
     {
         $ormawas = Ormawa::all();
-        return view('admin.ormawa.index', compact('ormawas'));
-    }
-
-    public function create()
-    {
-        return view('admin.ormawa.create');
+        $jurusans = \App\Models\Jurusan::all();
+        return view('admin.ormawa.index', compact('ormawas', 'jurusans'));
     }
 
     public function store(Request $request)
@@ -27,6 +23,8 @@ class OrmawaController extends Controller
             'ketua' => 'required|string|max:255',
             'pembina' => 'nullable|string|max:255',
             'deskripsi' => 'nullable|string',
+            'kategori_jurusan' => 'nullable|string|max:255',
+            'kategori_prodi' => 'nullable|string|max:255',
         ]);
 
         Ormawa::create($validated);
@@ -39,11 +37,6 @@ class OrmawaController extends Controller
         return view('admin.ormawa.show', compact('ormawa'));
     }
 
-    public function edit(Ormawa $ormawa)
-    {
-        return view('admin.ormawa.edit', compact('ormawa'));
-    }
-
     public function update(Request $request, Ormawa $ormawa)
     {
         $validated = $request->validate([
@@ -53,6 +46,8 @@ class OrmawaController extends Controller
             'ketua' => 'required|string|max:255',
             'pembina' => 'nullable|string|max:255',
             'deskripsi' => 'nullable|string',
+            'kategori_jurusan' => 'nullable|string|max:255',
+            'kategori_prodi' => 'nullable|string|max:255',
         ]);
 
         $ormawa->update($validated);

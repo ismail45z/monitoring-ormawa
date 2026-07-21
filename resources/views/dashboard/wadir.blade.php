@@ -126,6 +126,7 @@
                     <th>Nama Mahasiswa</th>
                     <th>NIM</th>
                     <th>No. KIP</th>
+                    <th>Jurusan / Prodi</th>
                     <th>Ormawa</th>
                     <th>Poin Didapat / Poin Maks</th>
                     <th>Tingkat Kehadiran</th>
@@ -138,17 +139,27 @@
                         <td><span class="fw-semibold">{{ $w['student']->pengguna->nama }}</span></td>
                         <td>{{ $w['student']->nim }}</td>
                         <td>{{ $w['student']->no_kip }}</td>
+                        <td>
+                            <div class="small fw-semibold text-dark">{{ $w['student']->jurusan ?? '-' }}</div>
+                            <div class="small text-muted">{{ $w['student']->prodi ?? '-' }}</div>
+                        </td>
                         <td>{{ $w['ormawa'] }}</td>
                         <td>{{ $w['total_poin'] }} / {{ $w['total_poin_maks'] }}</td>
                         <td style="min-width:150px;">
                             <div class="d-flex align-items-center gap-2">
                                 <div class="progress flex-grow-1" style="height: 10px;">
-                                    <div class="progress-bar bg-danger" role="progressbar" style="width: {{ $w['persentase'] }}%"></div>
+                                    <div class="progress-bar {{ $w['persentase'] >= 40 ? 'bg-warning' : 'bg-danger' }}" role="progressbar" style="width: {{ $w['persentase'] }}%"></div>
                                 </div>
-                                <span class="fw-bold text-danger">{{ $w['persentase'] }}%</span>
+                                <span class="fw-bold {{ $w['persentase'] >= 40 ? 'text-warning' : 'text-danger' }}">{{ $w['persentase'] }}%</span>
                             </div>
                         </td>
-                        <td><span class="badge bg-danger">TIDAK AKTIF</span></td>
+                        <td>
+                            @php
+                                $status = $w['persentase'] >= 40 ? 'Cukup' : 'Tidak Aktif';
+                                $badge = $w['persentase'] >= 40 ? 'bg-warning text-dark' : 'bg-danger';
+                            @endphp
+                            <span class="badge {{ $badge }} text-uppercase">{{ $status }}</span>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>

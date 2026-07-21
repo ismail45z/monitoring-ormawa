@@ -37,8 +37,8 @@
                         <td>
                             <input type="checkbox" class="form-check-input attendance-checkbox" value="{{ $kh->id }}" onchange="updateSelectedCount()">
                         </td>
-                        <td><span class="fw-semibold text-dark-toggle">{{ $kh->mahasiswa->pengguna->nama }}</span></td>
-                        <td>{{ $kh->mahasiswa->nim }}</td>
+                        <td><span class="fw-semibold text-dark-toggle">{{ $kh->keanggotaan->mahasiswa->pengguna->nama }}</span></td>
+                        <td>{{ $kh->keanggotaan->mahasiswa->nim }}</td>
                         <td>{{ $kh->kegiatan->nama_kegiatan }}</td>
                         <td>{{ \Carbon\Carbon::parse($kh->kegiatan->tanggal)->translatedFormat('d M Y') }}</td>
                         <td>
@@ -64,7 +64,7 @@
                                          style="width: 45px; height: 45px; object-fit: cover; cursor: pointer; transition: transform 0.2s;"
                                          onmouseover="this.style.transform='scale(1.12)'"
                                          onmouseout="this.style.transform='scale(1)'"
-                                         onclick="showQuickPhoto('{{ asset('storage/' . $kh->bukti_foto) }}', '{{ $kh->mahasiswa->pengguna->nama }}')">
+                                         onclick="showQuickPhoto('{{ asset('storage/' . $kh->bukti_foto) }}', '{{ $kh->keanggotaan->mahasiswa->pengguna->nama }}')">
                                 </div>
                             @else
                                 <span class="text-muted small">-</span>
@@ -85,7 +85,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body text-start">
-                                            <p>Mahasiswa: <strong>{{ $kh->mahasiswa->pengguna->nama }}</strong><br>
+                                            <p>Mahasiswa: <strong>{{ $kh->keanggotaan->mahasiswa->pengguna->nama }}</strong><br>
                                             Kegiatan: {{ $kh->kegiatan->nama_kegiatan }}</p>
                                             
                                             <!-- Setuju Form -->

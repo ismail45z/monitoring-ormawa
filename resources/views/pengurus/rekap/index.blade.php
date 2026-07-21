@@ -31,16 +31,28 @@
                             <div class="d-flex align-items-center">
                                 <span class="fw-bold me-2">{{ $data['persentase'] }}%</span>
                                 <div class="progress flex-grow-1" style="height: 6px; min-width: 80px;">
-                                    <div class="progress-bar {{ $data['persentase'] >= 75 ? 'bg-success' : 'bg-danger' }}" role="progressbar" style="width: {{ $data['persentase'] }}%"></div>
+                                    @php
+                                        $barColor = match($data['status']) {
+                                            'Sangat Aktif' => 'bg-success',
+                                            'Aktif' => 'bg-primary',
+                                            'Cukup' => 'bg-warning',
+                                            default => 'bg-danger',
+                                        };
+                                    @endphp
+                                    <div class="progress-bar {{ $barColor }}" role="progressbar" style="width: {{ $data['persentase'] }}%"></div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            @if($data['status'] == 'AKTIF')
-                                <span class="badge bg-success px-3 py-2 rounded-pill">AKTIF</span>
-                            @else
-                                <span class="badge bg-danger px-3 py-2 rounded-pill">TIDAK AKTIF</span>
-                            @endif
+                            @php
+                                $badgeClass = match($data['status']) {
+                                    'Sangat Aktif' => 'bg-success',
+                                    'Aktif' => 'bg-primary',
+                                    'Cukup' => 'bg-warning text-dark',
+                                    default => 'bg-danger',
+                                };
+                            @endphp
+                            <span class="badge {{ $badgeClass }} px-3 py-2 rounded-pill text-uppercase">{{ $data['status'] }}</span>
                         </td>
                     </tr>
                 @endforeach

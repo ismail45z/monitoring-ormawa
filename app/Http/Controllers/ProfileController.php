@@ -14,7 +14,8 @@ class ProfileController extends Controller
             $user->load('mahasiswa');
         }
 
-        return view('profile.edit', compact('user'));
+        $jurusans = \App\Models\Jurusan::all();
+        return view('profile.edit', compact('user', 'jurusans'));
     }
 
     public function update(Request $request)
@@ -32,8 +33,8 @@ class ProfileController extends Controller
         // Specific validation rules for mahasiswa_kip
         if ($user->role === 'mahasiswa_kip') {
             $rules = array_merge($rules, [
-                'nim' => ['required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('mahasiswa')->ignore($user->mahasiswa->id)],
-                'no_kip' => ['required', 'digits:6', \Illuminate\Validation\Rule::unique('mahasiswa')->ignore($user->mahasiswa->id)],
+                'nim' => ['required', 'string', 'max:10', \Illuminate\Validation\Rule::unique('mahasiswa')->ignore($user->mahasiswa->id)],
+                'no_kip' => ['required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('mahasiswa')->ignore($user->mahasiswa->id)],
                 'jurusan' => ['required', 'string', 'max:255'],
                 'prodi' => ['required', 'string', 'max:255'],
                 'angkatan' => ['required', 'integer', 'min:2000', 'max:' . (date('Y') + 1)],

@@ -85,12 +85,12 @@
                         @endforeach
                     </select>
                 @endif
-                <select name="periode" class="form-select form-select-sm" onchange="this.form.submit()">
+                <select name="periode_id" class="form-select form-select-sm" onchange="this.form.submit()">
                     @if($periodes->isEmpty())
                         <option value="">Tidak ada periode</option>
                     @endif
                     @foreach($periodes as $p)
-                        <option value="{{ $p }}" {{ $selectedPeriode == $p ? 'selected' : '' }}>Periode {{ $p }}</option>
+                        <option value="{{ $p->id }}" {{ $selectedPeriode == $p->id ? 'selected' : '' }}>Periode {{ $p->tahun }} - {{ $p->semester }}</option>
                     @endforeach
                 </select>
                 <noscript><button type="submit" class="btn btn-sm btn-primary">Filter</button></noscript>
@@ -136,7 +136,7 @@
                             
                             <div class="d-flex align-items-center flex-wrap gap-2">
                                 <span class="badge bg-light text-dark border"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ $kegiatan->tempat }}</span>
-                                <span class="badge bg-light text-dark border"><i class="bi bi-award-fill text-warning me-1"></i> Bobot: {{ $kegiatan->bobot_poin }} Poin</span>
+                                <span class="badge bg-light text-dark border"><i class="bi bi-award-fill text-warning me-1"></i> Bobot: {{ $kegiatan->poin }} Poin</span>
                                 @if($isToday)
                                     <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle-fill me-1"></i> Sedang Berlangsung / Hari Ini</span>
                                 @elseif($isPast)

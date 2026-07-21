@@ -117,9 +117,20 @@
                                             </div>
                                             <div class="modal-body">
                                                 <p>Tolak <strong>{{ $req->mahasiswa->pengguna->nama }}</strong>?</p>
-                                                <div class="mb-2">
+                                                <div class="mb-3">
                                                     <label class="form-label small text-muted">Alasan Penolakan (Opsional)</label>
                                                     <textarea name="catatan_pengurus" class="form-control form-control-sm" rows="2" placeholder="Kapasitas penuh..."></textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <div class="form-check form-switch mb-2">
+                                                        <input class="form-check-input" type="checkbox" name="is_permanen" id="isPermanen{{ $req->id }}" value="1" onchange="toggleCooldownInput({{ $req->id }})">
+                                                        <label class="form-check-label small" for="isPermanen{{ $req->id }}">Tolak Secara Permanen</label>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-2" id="cooldownDiv{{ $req->id }}">
+                                                    <label class="form-label small text-muted">Jeda Waktu Daftar Ulang (Hari)</label>
+                                                    <input type="number" name="cooldown_hari" id="cooldownInput{{ $req->id }}" class="form-control form-control-sm" placeholder="Kosongkan jika bisa langsung daftar" min="0">
+                                                    <small class="text-muted" style="font-size: 0.75rem;">Mahasiswa tidak bisa mendaftar ulang sebelum jeda berakhir.</small>
                                                 </div>
                                             </div>
                                             <div class="modal-footer pt-0 border-top-0">
@@ -247,4 +258,20 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    function toggleCooldownInput(reqId) {
+        const isPermanen = document.getElementById('isPermanen' + reqId).checked;
+        const cooldownInput = document.getElementById('cooldownInput' + reqId);
+        
+        if (isPermanen) {
+            cooldownInput.disabled = true;
+            cooldownInput.value = '';
+        } else {
+            cooldownInput.disabled = false;
+        }
+    }
+</script>
 @endsection

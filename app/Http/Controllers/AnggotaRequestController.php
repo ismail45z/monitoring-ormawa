@@ -80,7 +80,15 @@ class AnggotaRequestController extends Controller
 
             // Add to pivot table (avoid duplicates)
             if (!$mahasiswa->ormawas()->where('ormawa_id', $ormawa->id)->exists()) {
-                $mahasiswa->ormawas()->attach($ormawa->id);
+                $activePeriode = \App\Models\Periode::where('status', 'Aktif')->orderBy('tanggal_mulai', 'desc')->first();
+                $jabatan = \App\Models\Jabatan::where('nama_jabatan', 'Anggota')->first();
+
+                $mahasiswa->ormawas()->attach($ormawa->id, [
+                    'periode_id' => $activePeriode ? $activePeriode->id : 1,
+                    'jabatan_id' => $jabatan ? $jabatan->id : 1,
+                    'tgl_masuk'  => now(),
+                    'status'     => 'Aktif',
+                ]);
             }
         });
 
@@ -102,13 +110,22 @@ class AnggotaRequestController extends Controller
             return back()->with('error', 'Pengajuan ini sudah diproses sebelumnya.');
         }
 
-        $request->validate(['catatan_pengurus' => 'nullable|string|max:500']);
+        $request->validate([
+            'catatan_pengurus' => 'nullable|string|max:500',
+            'is_permanen' => 'nullable|boolean',
+            'cooldown_hari' => 'nullable|integer|min:0',
+        ]);
+
+        $isPermanen = $request->boolean('is_permanen');
+        $cooldownHari = $isPermanen ? null : $request->input('cooldown_hari');
 
         $anggotaRequest->update([
             'status'           => 'ditolak',
             'catatan_pengurus' => $request->catatan_pengurus,
             'pemroses_id'      => Auth::id(),
             'processed_at'     => now(),
+            'is_permanen'      => $isPermanen,
+            'cooldown_hari'    => $cooldownHari,
         ]);
 
         return back()->with('success', 'Pendaftaran berhasil ditolak.');

@@ -26,7 +26,8 @@ class AuthController extends Controller
         if (Auth::check()) {
             return $this->redirectDashboard(Auth::user()->role);
         }
-        return view('auth.register');
+        $jurusans = \App\Models\Jurusan::all();
+        return view('auth.register', compact('jurusans'));
     }
 
     /**
@@ -101,23 +102,28 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $rules = [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:pengguna',
-            'password' => 'required|string|min:6|confirmed',
-            'nim'      => 'required|string|max:255|unique:mahasiswa',
+            'name'      => 'required|string|max:255',
+            'email'     => 'required|string|email|max:255|unique:pengguna',
+            'password'  => 'required|string|min:6|confirmed',
+            'nim'       => 'required|string|max:10|unique:mahasiswa,nim',
+            'nomor_kip' => 'required|string|max:255',
+            'jurusan'   => 'required|string|max:255',
+            'prodi'     => 'required|string|max:255',
             'bukti_kip' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ];
 
         $messages = [
             'name.required'      => 'Nama lengkap wajib diisi.',
-            'email.required'     => 'Alamat email wajib diisi.',
+            'email.required'     => 'Email wajib diisi.',
             'email.email'        => 'Format email tidak valid.',
             'email.unique'       => 'Email ini sudah terdaftar. Gunakan email lain atau login.',
             'password.required'  => 'Kata sandi wajib diisi.',
             'password.min'       => 'Kata sandi minimal harus 6 karakter.',
             'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
             'nim.required'       => 'NIM wajib diisi.',
-            'nim.unique'         => 'NIM ini sudah terdaftar di sistem.',
+            'nim.max'            => 'NIM tidak boleh lebih dari 10 karakter.',
+            'nim.unique'         => 'NIM ini sudah terdaftar di sistem. Silakan gunakan NIM lain.',
+            'nomor_kip.required' => 'Nomor KIP-K wajib diisi.',
             'bukti_kip.required' => 'Bukti KIP wajib diunggah.',
             'bukti_kip.image'    => 'Bukti harus berupa file gambar.',
             'bukti_kip.mimes'    => 'Format gambar harus jpeg, png, atau jpg.',
@@ -145,8 +151,8 @@ class AuthController extends Controller
             'pengguna_id' => $pengguna->id,
             'nim' => $request->nim,
             'no_kip' => $request->nomor_kip ?? '-',
-            'jurusan' => '-',
-            'prodi' => '-',
+            'jurusan' => $request->jurusan,
+            'prodi' => $request->prodi,
             'angkatan' => date('Y'),
             'status_kip' => 'Aktif',
             'bukti_kip' => $buktiPath

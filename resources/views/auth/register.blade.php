@@ -286,6 +286,24 @@
                         </div>
                     </div>
                 </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <label for="jurusan" class="form-label">Jurusan</label>
+                        <select name="jurusan" id="jurusan" class="form-select form-select-custom" required>
+                            <option value="">Pilih Jurusan</option>
+                            @foreach($jurusans as $jurusan)
+                                <option value="{{ $jurusan->nama }}" {{ old('jurusan') == $jurusan->nama ? 'selected' : '' }}>{{ $jurusan->nama }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="prodi" class="form-label">Program Studi</label>
+                        <select name="prodi" id="prodi" class="form-select form-select-custom" required>
+                            <option value="">Pilih Prodi</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="mb-3">
                     <label for="bukti_kip" class="form-label">Upload Bukti KIP <span
                             class="text-danger">*</span></label>
@@ -349,6 +367,41 @@
             this.classList.toggle('bi-eye-slash');
         });
 
+        // AJAX for Prodi
+        document.getElementById('jurusan').addEventListener('change', function() {
+            const jurusan = this.value;
+            const prodiSelect = document.getElementById('prodi');
+            
+            // Clear current prodi
+            prodiSelect.innerHTML = '<option value="">Memuat...</option>';
+            
+            if(jurusan) {
+                fetch(`/api/prodi?jurusan=${encodeURIComponent(jurusan)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        prodiSelect.innerHTML = '<option value="">Pilih Prodi</option>';
+                        data.forEach(prodi => {
+                            const option = document.createElement('option');
+                            option.value = prodi;
+                            option.textContent = prodi;
+                            prodiSelect.appendChild(option);
+                        });
+                        
+                        // Retain old value if exists
+                        const oldProdi = '{{ old('prodi') }}';
+                        if(oldProdi) {
+                            prodiSelect.value = oldProdi;
+                        }
+                    });
+            } else {
+                prodiSelect.innerHTML = '<option value="">Pilih Prodi</option>';
+            }
+        });
+
+        // Trigger change on load if old jurusan exists
+        if(document.getElementById('jurusan').value) {
+            document.getElementById('jurusan').dispatchEvent(new Event('change'));
+        }
 
     </script>
 </body>

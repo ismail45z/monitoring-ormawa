@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['kegiatan_id', 'mahasiswa_id', 'status_kehadiran', 'status_verifikasi', 'keterangan', 'bukti_foto', 'keterangan_verifikasi'])]
+#[Fillable(['kegiatan_id', 'keanggotaan_id', 'status_kehadiran', 'status_verifikasi', 'keterangan', 'bukti_foto', 'keterangan_verifikasi', 'waktu_absen'])]
 class Kehadiran extends Model
 {
     use HasFactory;
@@ -28,10 +28,10 @@ class Kehadiran extends Model
     }
 
     /**
-     * Get the student related to this attendance record.
+     * Get the membership related to this attendance record.
      */
-    public function mahasiswa(): BelongsTo
+    public function keanggotaan(): BelongsTo
     {
-        return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
+        return $this->belongsTo(Keanggotaan::class, 'keanggotaan_id');
     }
 }

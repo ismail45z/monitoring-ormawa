@@ -22,30 +22,50 @@
         </div>
     @endif
 
+    @if(!$isProfileComplete)
+        <div class="alert alert-warning shadow-sm border-warning border-opacity-50" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle fs-3 text-warning me-3"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">Profil Anda Belum Lengkap!</h6>
+                    <p class="mb-0 small">Anda wajib melengkapi data Jurusan, Program Studi, dan Nomor KIP-Kuliah sebelum dapat mendaftar ke Ormawa manapun. <a href="{{ route('profile.edit') }}" class="fw-bold text-decoration-underline text-warning-emphasis">Lengkapi Profil Sekarang</a></p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="row">
         <!-- Status Pendaftaran Section -->
         <div class="col-md-4 mb-4">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                    <h5 class="fw-bold mb-0">Status Pendaftaran</h5>
+                    <h5 class="fw-bold mb-0">Riwayat Pendaftaran</h5>
                 </div>
                 <div class="card-body">
-                    @if($pendingRequests->isEmpty())
+                    @if($riwayatRequests->isEmpty())
                         <div class="text-center text-muted py-4">
                             <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                            <p class="mb-0 small">Belum ada pendaftaran yang sedang diproses.</p>
+                            <p class="mb-0 small">Belum ada riwayat pendaftaran.</p>
                         </div>
                     @else
                         <div class="list-group list-group-flush">
-                            @foreach($pendingRequests as $req)
+                            @foreach($riwayatRequests as $req)
                                 <div class="list-group-item px-0 py-3">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <h6 class="mb-0 fw-semibold">{{ $req->ormawa->nama_ormawa }}</h6>
-                                        <span class="badge bg-warning text-dark rounded-pill">Pending</span>
+                                        @if($req->status === 'pending')
+                                            <span class="badge bg-warning text-dark rounded-pill">Pending</span>
+                                        @elseif($req->status === 'disetujui')
+                                            <span class="badge bg-success rounded-pill">Disetujui</span>
+                                        @elseif($req->status === 'ditolak')
+                                            <span class="badge bg-danger rounded-pill">Ditolak</span>
+                                        @endif
                                     </div>
                                     <p class="mb-0 text-muted small">Dikirim: {{ $req->created_at->format('d M Y H:i') }}</p>
-                                    @if($req->catatan)
-                                        <p class="mb-0 mt-2 small text-muted"><i class="bi bi-chat-text me-1"></i> "{{ $req->catatan }}"</p>
+                                    @if($req->catatan_pengurus && $req->status === 'ditolak')
+                                        <div class="mt-2 p-2 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3">
+                                            <p class="mb-0 small text-danger"><i class="bi bi-info-circle-fill me-1"></i> <strong>Alasan:</strong> {{ $req->catatan_pengurus }}</p>
+                                        </div>
                                     @endif
                                 </div>
                             @endforeach
@@ -71,7 +91,28 @@
                             @foreach($ormawas as $ormawa)
                                 @php
                                     $isJoined = $mahasiswa->ormawas->contains($ormawa->id);
-                                    $isPending = $pendingRequests->contains('ormawa_id', $ormawa->id);
+                                    
+                                    $ormawaRequests = $riwayatRequests->where('ormawa_id', $ormawa->id)->sortByDesc('created_at');
+                                    $isPending = $ormawaRequests->where('status', 'pending')->isNotEmpty();
+                                    
+                                    $latestRejected = $ormawaRequests->where('status', 'ditolak')->first();
+                                    $isPermanen = false;
+                                    $sisaCooldown = 0;
+
+                                    if ($latestRejected) {
+                                        if ($latestRejected->is_permanen) {
+                                            $isPermanen = true;
+                                        } elseif ($latestRejected->cooldown_hari !== null && $latestRejected->cooldown_hari > 0) {
+                                            $processedAt = \Carbon\Carbon::parse($latestRejected->processed_at ?? $latestRejected->updated_at);
+                                            $daysPassed = $processedAt->diffInDays(now());
+                                            if ($daysPassed < $latestRejected->cooldown_hari) {
+                                                $sisaCooldown = $latestRejected->cooldown_hari - (int) $daysPassed;
+                                            }
+                                        }
+                                    }
+
+                                    $isJurusanBlocked = $ormawa->kategori_jurusan && $mahasiswa->jurusan !== $ormawa->kategori_jurusan;
+                                    $isProdiBlocked = $ormawa->kategori_prodi && $mahasiswa->prodi !== $ormawa->kategori_prodi;
                                 @endphp
                                 <div class="col">
                                     <div class="card h-100 border rounded-3 {{ $isJoined ? 'bg-light' : '' }}">
@@ -87,9 +128,29 @@
                                                 <button class="btn btn-warning btn-sm w-100" disabled>
                                                     <i class="bi bi-hourglass-split me-1"></i> Menunggu Konfirmasi
                                                 </button>
-                                            @elseif(!$ormawa->is_open_recruitment)
+                                            @elseif($isPermanen)
                                                 <button class="btn btn-danger btn-sm w-100" disabled>
+                                                    <i class="bi bi-x-circle me-1"></i> Ditolak Permanen
+                                                </button>
+                                            @elseif($sisaCooldown > 0)
+                                                <button class="btn btn-danger btn-sm w-100" disabled>
+                                                    <i class="bi bi-clock-history me-1"></i> Ditolak (Jeda {{ $sisaCooldown }} Hari)
+                                                </button>
+                                            @elseif(!$ormawa->is_open_recruitment)
+                                                <button class="btn btn-secondary btn-sm w-100" disabled>
                                                     <i class="bi bi-door-closed-fill me-1"></i> Pendaftaran Ditutup
+                                                </button>
+                                            @elseif(!$isProfileComplete)
+                                                <a href="{{ route('profile.edit') }}" class="btn btn-warning btn-sm w-100">
+                                                    <i class="bi bi-person-exclamation me-1"></i> Lengkapi Profil Dulu
+                                                </a>
+                                            @elseif($isJurusanBlocked)
+                                                <button class="btn btn-secondary btn-sm w-100" disabled title="Khusus Mahasiswa Jurusan {{ $ormawa->kategori_jurusan }}">
+                                                    <i class="bi bi-shield-lock-fill me-1"></i> Khusus Jurusan {{ $ormawa->kategori_jurusan }}
+                                                </button>
+                                            @elseif($isProdiBlocked)
+                                                <button class="btn btn-secondary btn-sm w-100" disabled title="Khusus Mahasiswa Program Studi {{ $ormawa->kategori_prodi }}">
+                                                    <i class="bi bi-shield-lock-fill me-1"></i> Khusus Prodi {{ $ormawa->kategori_prodi }}
                                                 </button>
                                             @else
                                                 <button type="button" class="btn btn-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#daftarModal-{{ $ormawa->id }}">
@@ -101,7 +162,7 @@
                                 </div>
 
                                 <!-- Modal Daftar -->
-                                @if(!$isJoined && !$isPending && $ormawa->is_open_recruitment)
+                                @if(!$isJoined && !$isPending && !$isPermanen && $sisaCooldown == 0 && $ormawa->is_open_recruitment && $isProfileComplete && !$isJurusanBlocked && !$isProdiBlocked)
                                 <div class="modal fade" id="daftarModal-{{ $ormawa->id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content border-0 rounded-4 shadow">

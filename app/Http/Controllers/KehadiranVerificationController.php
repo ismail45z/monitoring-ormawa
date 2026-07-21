@@ -20,7 +20,7 @@ class KehadiranVerificationController extends Controller
     public function index()
     {
         $ormawaId = $this->getOrmawaId();
-        $kehadirans = Kehadiran::with(['kegiatan', 'mahasiswa.pengguna'])
+        $kehadirans = Kehadiran::with(['kegiatan', 'keanggotaan.mahasiswa.pengguna'])
             ->where('status_verifikasi', 'Pending')
             ->whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawaId))
             ->get();
@@ -43,12 +43,12 @@ class KehadiranVerificationController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Kehadiran mahasiswa ' . $kehadiran->mahasiswa->pengguna->nama . ' berhasil disetujui.'
+                'message' => 'Kehadiran mahasiswa ' . $kehadiran->keanggotaan->mahasiswa->pengguna->nama . ' berhasil disetujui.'
             ]);
         }
 
         return redirect()->route('pengurus.kehadiran.index')
-            ->with('success', 'Kehadiran mahasiswa ' . $kehadiran->mahasiswa->pengguna->nama . ' berhasil DISETUJUI.');
+            ->with('success', 'Kehadiran mahasiswa ' . $kehadiran->keanggotaan->mahasiswa->pengguna->nama . ' berhasil DISETUJUI.');
     }
 
     public function reject(Request $request, Kehadiran $kehadiran)
@@ -72,12 +72,12 @@ class KehadiranVerificationController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Kehadiran mahasiswa ' . $kehadiran->mahasiswa->pengguna->nama . ' berhasil ditolak.'
+                'message' => 'Kehadiran mahasiswa ' . $kehadiran->keanggotaan->mahasiswa->pengguna->nama . ' berhasil ditolak.'
             ]);
         }
 
         return redirect()->route('pengurus.kehadiran.index')
-            ->with('success', 'Kehadiran mahasiswa ' . $kehadiran->mahasiswa->pengguna->nama . ' berhasil DITOLAK.');
+            ->with('success', 'Kehadiran mahasiswa ' . $kehadiran->keanggotaan->mahasiswa->pengguna->nama . ' berhasil DITOLAK.');
     }
 
     public function bulkApprove(Request $request)

@@ -25,15 +25,11 @@ class MahasiswaController extends Controller
                   });
         }
 
+        $ormawas = Ormawa::all();
+        $jurusans = \App\Models\Jurusan::all();
         $students = $query->paginate(15)->withQueryString();
         
-        return view('admin.mahasiswa.index', compact('students'));
-    }
-
-    public function create()
-    {
-        $ormawas = Ormawa::all();
-        return view('admin.mahasiswa.create', compact('ormawas'));
+        return view('admin.mahasiswa.index', compact('students', 'ormawas', 'jurusans'));
     }
 
     public function store(Request $request)
@@ -43,7 +39,7 @@ class MahasiswaController extends Controller
             'email'      => 'required|string|email|max:255|unique:pengguna',
             'password'   => 'required|string|min:6',
             'nim'        => 'required|string|max:20|unique:mahasiswa',
-            'no_kip'     => 'required|digits:6|unique:mahasiswa',
+            'no_kip'     => 'required|string|max:255',
             'prodi'      => 'required|string|max:255',
             'jurusan'    => 'required|string|max:255',
             'angkatan'   => 'required|integer',
@@ -58,6 +54,7 @@ class MahasiswaController extends Controller
                 'email'    => $request->email,
                 'password' => Hash::make($request->password),
                 'role'     => 'mahasiswa_kip',
+                'status_akun' => 'aktif'
             ]);
 
             $mahasiswa = Mahasiswa::create([
@@ -70,26 +67,30 @@ class MahasiswaController extends Controller
                 'status_kip'  => $request->status_kip,
             ]);
 
-            // Attach selected ormawas
             if ($request->filled('ormawa_ids')) {
-                $mahasiswa->ormawas()->sync($request->ormawa_ids);
+                $activePeriodeId = \App\Models\Periode::where('status', 'Aktif')->value('id') ?? 1;
+                $jabatanAnggotaId = \App\Models\Jabatan::where('nama_jabatan', 'Anggota')->value('id') ?? 1;
+                
+                $syncData = [];
+                foreach ($request->ormawa_ids as $ormawaId) {
+                    $syncData[$ormawaId] = [
+                        'periode_id' => $activePeriodeId,
+                        'jabatan_id' => $jabatanAnggotaId,
+                        'status'     => 'Aktif',
+                        'tgl_masuk'  => now(),
+                    ];
+                }
+                $mahasiswa->ormawas()->sync($syncData);
             }
         });
 
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data Mahasiswa KIP berhasil ditambahkan.');
+        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data Mahasiswa berhasil ditambahkan.');
     }
 
     public function show(Mahasiswa $mahasiswa)
     {
         $mahasiswa->load(['pengguna', 'ormawas']);
         return view('admin.mahasiswa.show', compact('mahasiswa'));
-    }
-
-    public function edit(Mahasiswa $mahasiswa)
-    {
-        $ormawas = Ormawa::all();
-        $mahasiswa->load(['pengguna', 'ormawas']);
-        return view('admin.mahasiswa.edit', compact('mahasiswa', 'ormawas'));
     }
 
     public function update(Request $request, Mahasiswa $mahasiswa)
@@ -99,7 +100,7 @@ class MahasiswaController extends Controller
             'email'      => ['required', 'string', 'email', 'max:255', Rule::unique('pengguna')->ignore($mahasiswa->pengguna_id)],
             'password'   => 'nullable|string|min:6',
             'nim'        => ['required', 'string', 'max:20', Rule::unique('mahasiswa')->ignore($mahasiswa->id)],
-            'no_kip'     => ['required', 'digits:6', Rule::unique('mahasiswa')->ignore($mahasiswa->id)],
+            'no_kip'     => ['required', 'string', 'max:255'],
             'prodi'      => 'required|string|max:255',
             'jurusan'    => 'required|string|max:255',
             'angkatan'   => 'required|integer',
@@ -129,8 +130,33 @@ class MahasiswaController extends Controller
                 'status_kip' => $request->status_kip,
             ]);
 
-            // Sync ormawas (removes old, adds new)
-            $mahasiswa->ormawas()->sync($request->ormawa_ids ?? []);
+            // Sync ormawas (removes old, adds new, preserves existing pivot data)
+            $existingKeanggotaan = $mahasiswa->keanggotaans->keyBy('ormawa_id');
+            $activePeriodeId = \App\Models\Periode::where('status', 'Aktif')->value('id') ?? 1;
+            $jabatanAnggotaId = \App\Models\Jabatan::where('nama_jabatan', 'Anggota')->value('id') ?? 1;
+            
+            $syncData = [];
+            if ($request->filled('ormawa_ids')) {
+                foreach ($request->ormawa_ids as $ormawaId) {
+                    if ($existingKeanggotaan->has($ormawaId)) {
+                        $existing = $existingKeanggotaan->get($ormawaId);
+                        $syncData[$ormawaId] = [
+                            'periode_id' => $existing->periode_id,
+                            'jabatan_id' => $existing->jabatan_id,
+                            'status'     => $existing->status,
+                            'tgl_masuk'  => $existing->tgl_masuk,
+                        ];
+                    } else {
+                        $syncData[$ormawaId] = [
+                            'periode_id' => $activePeriodeId,
+                            'jabatan_id' => $jabatanAnggotaId,
+                            'status'     => 'Aktif',
+                            'tgl_masuk'  => now(),
+                        ];
+                    }
+                }
+            }
+            $mahasiswa->ormawas()->sync($syncData);
         });
 
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Data Mahasiswa KIP berhasil diperbarui.');

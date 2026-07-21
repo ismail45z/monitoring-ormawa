@@ -56,12 +56,36 @@
         .report-table tr:nth-child(even) {
             background-color: #f9f9f9;
         }
+        .badge-sangat-aktif {
+            background-color: #d1fae5;
+            color: #065f46;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
         .badge-aktif {
-            color: green;
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .badge-cukup {
+            background-color: #fef3c7;
+            color: #92400e;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
             font-weight: bold;
         }
         .badge-tidak-aktif {
-            color: red;
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
             font-weight: bold;
         }
         .footer {
@@ -137,13 +161,17 @@
                     <td style="text-align: center;">{{ $row['total_kegiatan'] }}</td>
                     <td style="text-align: center;">{{ $row['total_poin'] }} / {{ $row['total_poin_maks'] ?? 0 }}</td>
                     <td style="text-align: center; font-weight: bold;">{{ $row['persentase'] }}%</td>
-                    <td style="text-align: center;">
-                        @if($row['status'] == 'AKTIF')
-                            <span class="badge-aktif">AKTIF</span>
-                        @else
-                            <span class="badge-tidak-aktif">TIDAK AKTIF</span>
-                        @endif
-                    </td>
+                        @php
+                            $badgeClass = match($row['status']) {
+                                'Sangat Aktif' => 'badge-sangat-aktif',
+                                'Aktif' => 'badge-aktif',
+                                'Cukup' => 'badge-cukup',
+                                default => 'badge-tidak-aktif',
+                            };
+                        @endphp
+                        <td style="text-align: center;">
+                            <span class="{{ $badgeClass }}">{{ strtoupper($row['status']) }}</span>
+                        </td>
                 </tr>
             @empty
                 <tr>

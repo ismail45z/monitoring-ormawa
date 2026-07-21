@@ -30,7 +30,15 @@
                         <div class="display-4 fw-bold {{ $rekap['persentase'] >= 75 ? 'text-success' : 'text-danger' }} mb-2">
                             {{ $rekap['persentase'] }}<span class="fs-5">%</span>
                         </div>
-                        <span class="{{ $rekap['statusKeaktifan'] == 'AKTIF' ? 'badge-custom-aktif' : 'badge-custom-tidak' }} text-uppercase fw-semibold px-3 py-2">
+                        @php
+                            $badgeClass = match($rekap['statusKeaktifan']) {
+                                'Sangat Aktif' => 'badge-custom-sangat-aktif',
+                                'Aktif' => 'badge-custom-aktif',
+                                'Cukup' => 'badge-custom-cukup',
+                                default => 'badge-custom-tidak',
+                            };
+                        @endphp
+                        <span class="{{ $badgeClass }} text-uppercase fw-semibold px-3 py-2">
                             {{ $rekap['statusKeaktifan'] }}
                         </span>
                     </div>
@@ -63,7 +71,7 @@
 
     <div class="alert alert-secondary mt-4 small">
         <i class="bi bi-info-circle-fill me-1 text-primary"></i>
-        <strong>Syarat Keaktifan:</strong> Mahasiswa diwajibkan memiliki tingkat kehadiran minimal <strong>75%</strong> pada setiap Ormawa yang diikuti. Status dipantau oleh Wakil Direktur Kemahasiswaan.
+        <strong>Syarat Keaktifan:</strong> Status dihitung berdasarkan akumulasi poin kegiatan yang diikuti: Sangat Aktif (>= 80), Aktif (60-79), Cukup (40-59), dan Tidak Aktif (< 40). Status dipantau oleh Wakil Direktur Kemahasiswaan.
     </div>
 @endif
 @endsection

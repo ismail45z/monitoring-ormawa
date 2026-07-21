@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use OwenIt\Auditing\Contracts\Auditable;
 
-#[Fillable(['nama_ormawa', 'jenis', 'periode', 'ketua', 'pembina', 'deskripsi', 'is_open_recruitment'])]
+#[Fillable(['nama_ormawa', 'jenis', 'periode', 'ketua', 'pembina', 'deskripsi', 'is_open_recruitment', 'kategori_jurusan', 'kategori_prodi'])]
 class Ormawa extends Model implements Auditable
 {
     use HasFactory;
@@ -52,11 +52,20 @@ class Ormawa extends Model implements Auditable
     }
 
     /**
-     * Get all students registered in this ormawa (Many-to-Many).
+     * Get all memberships in this ormawa.
+     */
+    public function keanggotaans(): HasMany
+    {
+        return $this->hasMany(Keanggotaan::class, 'ormawa_id');
+    }
+
+    /**
+     * Get the mahasiswas for this ormawa.
      */
     public function mahasiswas(): BelongsToMany
     {
-        return $this->belongsToMany(Mahasiswa::class, 'mahasiswa_ormawa', 'ormawa_id', 'mahasiswa_id')
-            ->withTimestamps();
+        return $this->belongsToMany(Mahasiswa::class, 'keanggotaans', 'ormawa_id', 'mahasiswa_id')
+                    ->withPivot(['periode_id', 'jabatan_id', 'tgl_masuk', 'tgl_selesai', 'status'])
+                    ->withTimestamps();
     }
 }

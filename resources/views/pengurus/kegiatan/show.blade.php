@@ -40,7 +40,22 @@
             </div>
             <div class="mb-3">
                 <label class="text-muted small d-block">Bobot Poin</label>
-                <span class="fw-semibold text-success">{{ $kegiatan->bobot_poin }} Poin</span>
+                <span class="fw-semibold text-success">{{ $kegiatan->poin }} Poin</span>
+            </div>
+            <div class="mb-3">
+                <label class="text-muted small d-block">Status Absensi</label>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    @if($kegiatan->isAttendanceOpen())
+                        <span class="badge bg-success"><i class="bi bi-unlock-fill me-1"></i>{{ $kegiatan->getAttendanceStatusText() }}</span>
+                    @elseif($kegiatan->isAttendanceNotYetOpen())
+                        <span class="badge bg-warning text-dark"><i class="bi bi-clock-fill me-1"></i>{{ $kegiatan->getAttendanceStatusText() }}</span>
+                    @else
+                        <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>{{ $kegiatan->getAttendanceStatusText() }}</span>
+                    @endif
+                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#modalToggleAbsensi">
+                        <i class="bi bi-gear"></i> Ubah
+                    </button>
+                </div>
             </div>
             @if($kegiatan->deskripsi)
             <div class="mb-0">
@@ -98,6 +113,7 @@
                         <tr>
                             <th>Mahasiswa</th>
                             <th>NIM</th>
+                            <th>Jurusan/Prodi</th>
                             <th>Status</th>
                             <th>Verifikasi</th>
                         </tr>
@@ -105,8 +121,12 @@
                     <tbody>
                         @forelse($kegiatan->kehadiran as $kh)
                             <tr>
-                                <td class="fw-semibold">{{ $kh->mahasiswa->pengguna->nama }}</td>
-                                <td class="text-muted">{{ $kh->mahasiswa->nim }}</td>
+                                <td class="fw-semibold">{{ $kh->keanggotaan->mahasiswa->pengguna->nama }}</td>
+                                <td class="text-muted">{{ $kh->keanggotaan->mahasiswa->nim }}</td>
+                                <td>
+                                    <div class="small fw-semibold text-dark">{{ $kh->keanggotaan->mahasiswa->jurusan ?? '-' }}</div>
+                                    <div class="small text-muted">{{ $kh->keanggotaan->mahasiswa->prodi ?? '-' }}</div>
+                                </td>
                                 <td>
                                     @if($kh->status_kehadiran == 'Hadir')
                                         <span class="badge bg-success">Hadir</span>
@@ -128,7 +148,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-5">
+                                <td colspan="5" class="text-center text-muted py-5">
                                     <i class="bi bi-person-x fs-2 d-block mb-2 opacity-50"></i>
                                     Belum ada mahasiswa yang mencatat kehadiran untuk kegiatan ini.
                                 </td>
@@ -139,5 +159,55 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Modal Toggle Absensi -->
+<div class="modal fade" id="modalToggleAbsensi" tabindex="-1" aria-labelledby="modalToggleAbsensiLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4 shadow-lg">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold" id="modalToggleAbsensiLabel"><i class="bi bi-gear-fill text-primary me-2"></i>Ubah Status Absensi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-3">
+        <form action="{{ route('pengurus.kegiatan.toggle-absensi', $kegiatan->id) }}" method="POST">
+            @csrf
+            @method('PATCH')
+            
+            <div class="mb-4">
+                <label class="form-label text-muted small">Pilih Mode Status Absensi</label>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="radio" name="status_absensi" id="statusAuto" value="auto" {{ $kegiatan->status_absensi === 'auto' ? 'checked' : '' }}>
+                  <label class="form-check-label fw-semibold" for="statusAuto">
+                    Otomatis (Auto)
+                  </label>
+                  <div class="form-text mt-0">Absensi akan otomatis ditutup jika waktu kegiatan (tanggal & waktu selesai) sudah lewat.</div>
+                </div>
+                
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="radio" name="status_absensi" id="statusBuka" value="buka" {{ $kegiatan->status_absensi === 'buka' ? 'checked' : '' }}>
+                  <label class="form-check-label fw-semibold text-success" for="statusBuka">
+                    Buka Paksa (Force Open)
+                  </label>
+                  <div class="form-text mt-0">Mahasiswa tetap bisa absen kapanpun walau waktu kegiatan sudah lewat lama.</div>
+                </div>
+                
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="status_absensi" id="statusTutup" value="tutup" {{ $kegiatan->status_absensi === 'tutup' ? 'checked' : '' }}>
+                  <label class="form-check-label fw-semibold text-danger" for="statusTutup">
+                    Tutup Paksa (Force Close)
+                  </label>
+                  <div class="form-text mt-0">Mahasiswa tidak bisa absen walau kegiatan sedang berlangsung saat ini.</div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary btn-gradient-primary">Simpan Perubahan</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 @endsection

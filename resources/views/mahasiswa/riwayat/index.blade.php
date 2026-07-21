@@ -23,8 +23,8 @@
                 @foreach($kehadirans as $kh)
                     <tr>
                         <td><span class="fw-semibold">{{ $kh->kegiatan->nama_kegiatan }}</span></td>
-                        <td><span class="badge bg-info text-dark">{{ $kh->kegiatan->periode ?? '-' }}</span></td>
-                        <td><span class="badge bg-primary">{{ $kh->kegiatan->bobot_poin }}</span></td>
+                        <td><span class="badge bg-info text-dark">{{ $kh->kegiatan->periode ? $kh->kegiatan->periode->tahun . ' - ' . $kh->kegiatan->periode->semester : '-' }}</span></td>
+                        <td><span class="badge bg-primary">{{ $kh->kegiatan->poin }}</span></td>
                         <td>{{ \Carbon\Carbon::parse($kh->kegiatan->tanggal)->translatedFormat('d F Y') }}</td>
                         <td>
                             @if($kh->status_kehadiran == 'Hadir')
