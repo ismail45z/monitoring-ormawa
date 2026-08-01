@@ -37,7 +37,7 @@ class PenggunaController extends Controller
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:pengguna',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:8',
             'role' => 'required|in:admin,pengurus_ormawa,mahasiswa_kip,wadir',
             'ormawa_id' => 'required_if:role,pengurus_ormawa|nullable|exists:ormawa,id',
         ]);
@@ -62,7 +62,7 @@ class PenggunaController extends Controller
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('pengguna')->ignore($pengguna->id)],
-            'password' => 'nullable|string|min:6',
+            'password' => 'nullable|string|min:8',
             'role' => 'required|in:admin,pengurus_ormawa,mahasiswa_kip,wadir',
             'ormawa_id' => 'required_if:role,pengurus_ormawa|nullable|exists:ormawa,id',
         ]);

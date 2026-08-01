@@ -74,11 +74,11 @@ class Mahasiswa extends Model implements Auditable
     }
 
     /**
-     * Get the attendance records for this student.
+     * Get the attendance records for this student (through keanggotaan).
      */
-    public function kehadiran(): HasMany
+    public function kehadiran()
     {
-        return $this->hasMany(Kehadiran::class, 'mahasiswa_id');
+        return $this->hasManyThrough(Kehadiran::class, Keanggotaan::class, 'mahasiswa_id', 'keanggotaan_id');
     }
 
     /**

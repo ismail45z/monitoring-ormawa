@@ -307,6 +307,107 @@
                                     <i class="bi bi-moon-fill" id="themeIcon"></i>
                                 </button>
 
+                                <!-- Notification Bell -->
+                                @php
+                                    $notifCount = 0;
+                                    $notifItems = collect();
+
+                                    if (Auth::user()->role === 'mahasiswa_kip' && Auth::user()->mahasiswa) {
+                                        $mahasiswa   = Auth::user()->mahasiswa;
+                                        $ormawaIds   = $mahasiswa->ormawas->pluck('id');
+                                        $notifItems  = \App\Models\Pengumuman::with('ormawa')
+                                            ->whereIn('ormawa_id', $ormawaIds)
+                                            ->where('is_aktif', true)
+                                            ->latest()
+                                            ->take(5)
+                                            ->get();
+                                        $notifCount = $notifItems->count();
+                                    } elseif (Auth::user()->role === 'pengurus_ormawa' && Auth::user()->ormawa) {
+                                        $ormawaId   = Auth::user()->ormawa->id;
+                                        $notifCount = \App\Models\Kehadiran::whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawaId))
+                                            ->where('status_verifikasi', 'Pending')
+                                            ->count();
+                                    }
+                                @endphp
+
+                                <div class="dropdown me-3">
+                                    <button class="btn btn-light rounded-circle position-relative d-flex align-items-center justify-content-center"
+                                            type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                            style="width: 40px; height: 40px;">
+                                        <i class="bi bi-bell-fill"></i>
+                                        @if($notifCount > 0)
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                                  style="font-size: 0.65rem; min-width: 18px; padding: 3px 5px;">
+                                                {{ $notifCount > 9 ? '9+' : $notifCount }}
+                                            </span>
+                                        @endif
+                                    </button>
+
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="min-width: 300px; max-width: 340px;">
+                                        <li class="dropdown-header fw-bold text-uppercase small px-3 py-2" style="letter-spacing: 0.05em;">
+                                            <i class="bi bi-bell me-1"></i>
+                                            @if(Auth::user()->role === 'mahasiswa_kip')
+                                                Pengumuman Ormawa
+                                            @elseif(Auth::user()->role === 'pengurus_ormawa')
+                                                Kehadiran Perlu Diverifikasi
+                                            @else
+                                                Notifikasi
+                                            @endif
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+
+                                        @if($notifCount === 0)
+                                            <li class="px-3 py-3 text-center text-muted small">
+                                                <i class="bi bi-check-circle me-1"></i> Tidak ada notifikasi baru
+                                            </li>
+                                        @else
+                                            @if(Auth::user()->role === 'mahasiswa_kip')
+                                                @foreach($notifItems as $notif)
+                                                    <li>
+                                                        <div class="dropdown-item py-2" style="white-space: normal;">
+                                                            <div class="d-flex align-items-start">
+                                                                <i class="bi bi-megaphone-fill text-primary me-2 mt-1 flex-shrink-0"></i>
+                                                                <div>
+                                                                    <div class="fw-semibold small">{{ Str::limit($notif->judul, 40) }}</div>
+                                                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                                                        {{ $notif->ormawa->nama_ormawa ?? '-' }} &bull;
+                                                                        {{ $notif->created_at->translatedFormat('d M Y') }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                @endforeach
+                                            @elseif(Auth::user()->role === 'pengurus_ormawa')
+                                                <li>
+                                                    <a href="{{ route('pengurus.kehadiran.index') }}" class="dropdown-item py-2">
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="bi bi-clock-history text-warning me-2 fs-5"></i>
+                                                            <div>
+                                                                <div class="fw-semibold small">{{ $notifCount }} kehadiran menunggu verifikasi</div>
+                                                                <div class="text-muted" style="font-size: 0.75rem;">Klik untuk melihat daftar</div>
+                                                            </div>
+                                                        </div>
+                                                    </a>
+                                                </li>
+                                            @endif
+                                        @endif
+
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li class="text-center py-1">
+                                            @if(Auth::user()->role === 'mahasiswa_kip')
+                                                <a href="{{ route('mahasiswa.dashboard') }}" class="small text-primary text-decoration-none">
+                                                    Lihat semua pengumuman <i class="bi bi-arrow-right"></i>
+                                                </a>
+                                            @elseif(Auth::user()->role === 'pengurus_ormawa')
+                                                <a href="{{ route('pengurus.kehadiran.index') }}" class="small text-primary text-decoration-none">
+                                                    Buka halaman verifikasi <i class="bi bi-arrow-right"></i>
+                                                </a>
+                                            @endif
+                                        </li>
+                                    </ul>
+                                </div>
+
                                 <div class="dropdown">
                                     <button class="btn btn-light dropdown-toggle rounded-pill d-flex align-items-center" type="button" data-bs-toggle="dropdown">
                                         @if(Auth::user()->foto)

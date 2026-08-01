@@ -122,10 +122,10 @@ class WadirReportController extends Controller
         $endDate = $request->input('tanggal_selesai');
 
         $reportData = $this->getReportData($ormawaId, $startDate, $endDate);
-        $selectedOrmawaName = $ormawaId ? Ormawa::find($ormawaId)->nama_ormawa : 'Semua Ormawa';
+        $selectedOrmawaName = $ormawaId ? (Ormawa::find($ormawaId)?->nama_ormawa ?? 'Tidak Diketahui') : 'Semua Ormawa';
 
         $pdf = Pdf::loadView('pdf.laporan_wadir', compact('reportData', 'selectedOrmawaName', 'startDate', 'endDate'));
-        return $pdf->download('laporan-keaktifan-kipk.pdf');
+        return $pdf->stream('laporan-keaktifan-kipk.pdf');
     }
 
     /**
@@ -138,53 +138,16 @@ class WadirReportController extends Controller
         $endDate = $request->input('tanggal_selesai');
 
         $reportData = $this->getReportData($ormawaId, $startDate, $endDate);
+        $selectedOrmawaName = $ormawaId ? (\App\Models\Ormawa::find($ormawaId)?->nama_ormawa ?? 'Tidak Diketahui') : 'Semua Ormawa';
 
         $headers = [
-            'Content-type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="laporan-keaktifan-kipk.csv"',
+            'Content-type' => 'application/vnd.ms-excel',
+            'Content-Disposition' => 'attachment; filename="laporan-keaktifan-kipk.xls"',
             'Pragma' => 'no-cache',
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
             'Expires' => '0',
         ];
 
-        $callback = function () use ($reportData) {
-            $file = fopen('php://output', 'w');
-            // Write BOM for Excel UTF-8 support
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-
-            // Header Row
-            fputcsv($file, [
-                'No', 
-                'Nama Mahasiswa', 
-                'NIM', 
-                'No KIP', 
-                'Program Studi', 
-                'Organisasi Mahasiswa (Ormawa)', 
-                'Total Kegiatan', 
-                'Total Poin', 
-                'Persentase', 
-                'Status Keaktifan'
-            ]);
-
-            $no = 1;
-            foreach ($reportData as $row) {
-                fputcsv($file, [
-                    $no++,
-                    $row['nama'],
-                    $row['nim'],
-                    $row['no_kip'],
-                    $row['prodi'],
-                    $row['ormawa'],
-                    $row['total_kegiatan'],
-                    $row['total_poin'] . ' / ' . ($row['total_poin_maks'] ?? 0),
-                    $row['persentase'] . '%',
-                    $row['status']
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return response(view('excel.laporan_wadir', compact('reportData', 'selectedOrmawaName', 'startDate', 'endDate')))->withHeaders($headers);
     }
 }

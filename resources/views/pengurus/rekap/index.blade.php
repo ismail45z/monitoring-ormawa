@@ -3,7 +3,23 @@
 
 @section('content')
 <div class="card card-custom p-4">
-    <h4 class="fw-bold mb-4"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i>Rekap Keaktifan Anggota KIP-K</h4>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold mb-0"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i>Rekap Keaktifan Anggota KIP-K</h4>
+            <p class="text-muted small mb-0">Data keaktifan seluruh anggota KIP-K di ormawa Anda</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('pengurus.rekap.export-pdf') }}"
+               target="_blank"
+               class="btn btn-outline-danger shadow-sm rounded-pill">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Ekspor PDF
+            </a>
+            <a href="{{ route('pengurus.rekap.export-excel') }}"
+               class="btn btn-outline-success shadow-sm rounded-pill">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Ekspor Excel
+            </a>
+        </div>
+    </div>
 
     <div class="table-responsive">
         <table class="table align-middle datatable">

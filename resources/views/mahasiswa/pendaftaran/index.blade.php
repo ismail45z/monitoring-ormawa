@@ -192,6 +192,13 @@
                                 @endif
                             @endforeach
                         </div>
+
+                        {{-- Pagination Ormawa --}}
+                        @if($ormawas->hasPages())
+                        <div class="d-flex justify-content-center mt-4">
+                            {{ $ormawas->links() }}
+                        </div>
+                        @endif
                     @endif
                 </div>
             </div>

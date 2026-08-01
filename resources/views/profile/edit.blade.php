@@ -112,7 +112,7 @@
                         <label class="form-label">Bukti Kartu KIP-Kuliah</label>
                         @if($user->mahasiswa->bukti_kip)
                             <div class="mb-2">
-                                <img src="{{ asset('storage/' . $user->mahasiswa->bukti_kip) }}" alt="Bukti KIP" class="img-thumbnail shadow-sm img-popup" style="max-height: 200px; object-fit: contain;">
+                                <img src="{{ route('secure.file', ['path' => $user->mahasiswa->bukti_kip]) }}" alt="Bukti KIP" class="img-thumbnail shadow-sm img-popup" style="max-height: 200px; object-fit: contain;">
                             </div>
                         @endif
                         <input type="file" name="bukti_kip" class="form-control" accept="image/jpeg,image/png,image/jpg,image/gif">

@@ -124,11 +124,24 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6 text-center">
-                                                    <h6 class="fw-bold border-bottom pb-2 mb-3">Foto Bukti KIP</h6>
+                                                    <h6 class="fw-bold border-bottom pb-2 mb-3">Foto/Dokumen Bukti KIP</h6>
                                                     @if($user->mahasiswa->bukti_kip)
-                                                        <img src="{{ asset('storage/' . $user->mahasiswa->bukti_kip) }}" class="img-fluid rounded shadow-sm border border-2 border-light" alt="Bukti KIP">
+                                                        @if(Str::endsWith(strtolower($user->mahasiswa->bukti_kip), '.pdf'))
+                                                            <div class="p-4 bg-light rounded border border-2 border-light mb-2">
+                                                                <i class="bi bi-file-earmark-pdf-fill text-danger d-block mb-2" style="font-size: 3rem;"></i>
+                                                                <span class="fw-semibold text-muted">Dokumen PDF</span>
+                                                            </div>
+                                                            <a href="{{ route('secure.file', ['path' => $user->mahasiswa->bukti_kip]) }}" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill px-4">
+                                                                <i class="bi bi-download me-1"></i> Buka / Unduh PDF
+                                                            </a>
+                                                        @else
+                                                            <img src="{{ route('secure.file', ['path' => $user->mahasiswa->bukti_kip]) }}" class="img-fluid rounded shadow-sm border border-2 border-light mb-2" alt="Bukti KIP">
+                                                            <a href="{{ route('secure.file', ['path' => $user->mahasiswa->bukti_kip]) }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                                                                <i class="bi bi-arrows-fullscreen me-1"></i> Perbesar
+                                                            </a>
+                                                        @endif
                                                     @else
-                                                        <div class="p-5 bg-light text-muted rounded"><i class="bi bi-image-fill fs-1 d-block mb-2"></i>Tidak ada foto bukti.</div>
+                                                        <div class="p-5 bg-light text-muted rounded"><i class="bi bi-image-fill fs-1 d-block mb-2"></i>Tidak ada dokumen bukti.</div>
                                                     @endif
                                                 </div>
                                             </div>

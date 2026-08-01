@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:3,5');
 Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
 Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
@@ -38,6 +38,11 @@ Route::get('/api/prodi', function (\Illuminate\Http\Request $request) {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', [DashboardController::class, 'index']);
+
+    // Secure File Serving Route
+    Route::get('/secure-file/{path}', [\App\Http\Controllers\SecureFileController::class, 'show'])
+        ->where('path', '.*')
+        ->name('secure.file');
 
     // Profile Routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -77,6 +82,9 @@ Route::middleware('auth')->group(function () {
 
         // Member Recap
         Route::get('/rekap-keaktifan', [RekapAnggotaController::class, 'index'])->name('rekap.index');
+        Route::get('/rekap-keaktifan/export-pdf', [RekapAnggotaController::class, 'exportPdf'])->name('rekap.export-pdf');
+        Route::get('/rekap-keaktifan/export-excel', [RekapAnggotaController::class, 'exportExcel'])->name('rekap.export-excel');
+
 
         // Anggota Management (Pengurus memverifikasi permintaan)
         Route::get('/anggota', [AnggotaRequestController::class, 'index'])->name('anggota.index');

@@ -36,7 +36,7 @@ class MahasiswaFeaturesController extends Controller
         $kegiatans = Kegiatan::whereIn('ormawa_id', $ormawaIds)
             ->with('ormawa')
             ->orderBy('tanggal', 'desc')
-            ->get();
+            ->paginate(12);
 
         // Get activities they already logged attendance for
         $alreadyLogged = Kehadiran::whereHas('keanggotaan', fn($q) => $q->where('mahasiswa_id', $mahasiswa->id))
@@ -102,14 +102,14 @@ class MahasiswaFeaturesController extends Controller
         }
 
         $validated = $request->validate([
-            'status_kehadiran' => 'required|in:Hadir,Tidak Hadir,Izin',
-            'bukti_foto'       => 'required_if:status_kehadiran,Hadir,Izin|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'status_kehadiran' => 'required|in:Hadir,Tidak Hadir,Izin,Sakit',
+            'bukti_foto'       => 'required_if:status_kehadiran,Hadir,Izin,Sakit|image|mimes:jpeg,png,jpg,gif|max:2048',
             'keterangan'       => 'nullable|string',
         ]);
 
         $buktiFotoPath = null;
         if ($request->hasFile('bukti_foto')) {
-            $buktiFotoPath = $request->file('bukti_foto')->store('bukti_kehadiran', 'public');
+            $buktiFotoPath = $this->compressAndStoreImage($request->file('bukti_foto'), 'bukti_kehadiran');
         }
 
         $keanggotaan = \App\Models\Keanggotaan::where('mahasiswa_id', $mahasiswa->id)->where('ormawa_id', $kegiatan->ormawa_id)->first();
@@ -135,7 +135,7 @@ class MahasiswaFeaturesController extends Controller
         $kehadirans = Kehadiran::with('kegiatan.ormawa')
             ->whereHas('keanggotaan', fn($q) => $q->where('mahasiswa_id', $mahasiswa->id))
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(12);
 
         return view('mahasiswa.riwayat.index', compact('kehadirans'));
     }
@@ -205,7 +205,7 @@ class MahasiswaFeaturesController extends Controller
     public function pendaftaranIndex()
     {
         $mahasiswa = $this->getMahasiswa();
-        $ormawas = \App\Models\Ormawa::all();
+        $ormawas = \App\Models\Ormawa::paginate(9);
         $isProfileComplete = $mahasiswa->isProfileComplete();
         
         // Get all requests for this student (pending, disetujui, ditolak)
@@ -289,5 +289,66 @@ class MahasiswaFeaturesController extends Controller
         ]);
 
         return back()->with('success', 'Permintaan bergabung berhasil dikirim. Menunggu persetujuan Pengurus Ormawa.');
+    }
+
+    /**
+     * Compress and store an uploaded image using PHP GD.
+     * Resizes to max 1024px wide and saves at 80% JPEG quality.
+     */
+    private function compressAndStoreImage($uploadedFile, string $directory): string
+    {
+        $extension = strtolower($uploadedFile->getClientOriginalExtension());
+        $filename  = uniqid() . '.' . $extension;
+        $destPath  = storage_path('app/' . $directory . '/' . $filename);
+
+        if (!is_dir(dirname($destPath))) {
+            mkdir(dirname($destPath), 0755, true);
+        }
+
+        $sourcePath = $uploadedFile->getRealPath();
+
+        $srcImage = match ($extension) {
+            'jpg', 'jpeg' => imagecreatefromjpeg($sourcePath),
+            'png'         => imagecreatefrompng($sourcePath),
+            'gif'         => imagecreatefromgif($sourcePath),
+            default       => null,
+        };
+
+        if (!$srcImage) {
+            $uploadedFile->storeAs($directory, $filename, 'local');
+            return $directory . '/' . $filename;
+        }
+
+        $origW = imagesx($srcImage);
+        $origH = imagesy($srcImage);
+        $maxW  = 1024;
+
+        if ($origW > $maxW) {
+            $newW = $maxW;
+            $newH = (int) round($origH * ($maxW / $origW));
+        } else {
+            $newW = $origW;
+            $newH = $origH;
+        }
+
+        $resized = imagecreatetruecolor($newW, $newH);
+
+        if ($extension === 'png') {
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+        }
+
+        imagecopyresampled($resized, $srcImage, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+        if ($extension === 'png') {
+            imagepng($resized, $destPath, 7);
+        } else {
+            imagejpeg($resized, $destPath, 80);
+        }
+
+        imagedestroy($srcImage);
+        imagedestroy($resized);
+
+        return $directory . '/' . $filename;
     }
 }

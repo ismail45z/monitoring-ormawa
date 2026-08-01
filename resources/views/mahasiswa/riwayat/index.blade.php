@@ -60,5 +60,12 @@
             </tbody>
         </table>
     </div>
+
+    {{-- Pagination --}}
+    @if($kehadirans->hasPages())
+    <div class="d-flex justify-content-center mt-4">
+        {{ $kehadirans->links() }}
+    </div>
+    @endif
 </div>
 @endsection

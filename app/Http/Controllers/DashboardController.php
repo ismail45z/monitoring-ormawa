@@ -9,6 +9,7 @@ use App\Models\Ormawa;
 use App\Models\Pengguna;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -213,7 +214,10 @@ class DashboardController extends Controller
             $studentActive = true; // assume active unless proven inactive in any ormawa
 
             foreach ($ormawasStudent as $ormawa) {
-                $rekap = $keaktifanService->hitungRekap($student, $ormawa, $startDate, $endDate);
+                $cacheKey = "rekap_{$student->id}_{$ormawa->id}_" . ($startDate ?? 'all') . '_' . ($endDate ?? 'now');
+                $rekap = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($student, $ormawa, $startDate, $endDate, $keaktifanService) {
+                    return $keaktifanService->hitungRekap($student, $ormawa, $startDate, $endDate);
+                });
 
                 if ($rekap['persentase'] < 60) {
                     $studentActive = false;
@@ -261,7 +265,10 @@ class DashboardController extends Controller
 
             if ($totalStud > 0) {
                 foreach ($studentsInOrmawa as $s) {
-                    $rekap = $keaktifanService->hitungRekap($s, $o, $startDate, $endDate);
+                    $cacheKey = "rekap_{$s->id}_{$o->id}_all_now";
+                    $rekap = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($s, $o, $startDate, $endDate, $keaktifanService) {
+                        return $keaktifanService->hitungRekap($s, $o, $startDate, $endDate);
+                    });
                     $sumPercentage += $rekap['persentase'];
                 }
                 $avgPercentage = round($sumPercentage / $totalStud, 1);

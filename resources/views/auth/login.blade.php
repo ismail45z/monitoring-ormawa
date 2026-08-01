@@ -197,7 +197,27 @@
             </div>
         @endif
 
+        @if(session('throttle_error'))
+            <div class="alert rounded-3 mb-3 py-3 px-3 small" style="background-color: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);" role="alert">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-shield-lock-fill me-2 fs-5"></i>
+                    <strong>Akses Login Diblokir Sementara</strong>
+                </div>
+                <p class="mb-2">{{ session('throttle_error') }}</p>
+                @if(session('throttle_seconds'))
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <i class="bi bi-hourglass-split me-1"></i>
+                        <span>Sisa waktu tunggu: </span>
+                        <span id="countdown-timer" class="fw-bold ms-1" style="font-size: 1rem; color: #fbbf24;">
+                            {{ gmdate('i:s', session('throttle_seconds')) }}
+                        </span>
+                    </div>
+                @endif
+            </div>
+        @endif
+
         @if($errors->any())
+
             <div class="alert alert-danger bg-danger border-danger text-white rounded-3 mb-3 py-2 px-3 small" role="alert">
                 <ul class="mb-0 ps-3">
                     @foreach($errors->all() as $error)
@@ -246,6 +266,37 @@
             this.classList.toggle('bi-eye');
             this.classList.toggle('bi-eye-slash');
         });
+
+        // Countdown timer untuk throttle lockout
+        (function () {
+            const timerEl = document.getElementById('countdown-timer');
+            if (!timerEl) return;
+
+            const text = timerEl.textContent.trim(); // format "MM:SS"
+            const parts = text.split(':');
+            if (parts.length !== 2) return;
+
+            let totalSeconds = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+
+            function pad(n) { return String(n).padStart(2, '0'); }
+
+            function tick() {
+                if (totalSeconds <= 0) {
+                    timerEl.textContent = '00:00';
+                    timerEl.style.color = '#10b981';
+                    timerEl.closest('.alert').querySelector('p').textContent =
+                        'Waktu tunggu telah selesai. Anda dapat mencoba login kembali.';
+                    return;
+                }
+                totalSeconds--;
+                const m = Math.floor(totalSeconds / 60);
+                const s = totalSeconds % 60;
+                timerEl.textContent = pad(m) + ':' + pad(s);
+                setTimeout(tick, 1000);
+            }
+
+            setTimeout(tick, 1000);
+        })();
     </script>
 </body>
 </html>

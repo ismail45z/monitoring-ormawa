@@ -305,13 +305,33 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label for="bukti_kip" class="form-label">Upload Bukti KIP <span
-                            class="text-danger">*</span></label>
-                    <input type="file" name="bukti_kip" id="bukti_kip" class="form-control form-control-custom"
-                        accept="image/jpeg, image/png, image/jpg" required>
-                    <small class="text-secondary mt-1 d-block"
-                        style="color: #64748b !important; font-size: 0.75rem;">Format JPG/PNG maks 2MB.</small>
+                    <label class="form-label">Upload Bukti KIP <span class="text-danger">*</span></label>
+                    <label for="bukti_kip" id="uploadZone" style="
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 0.5rem;
+                        background: rgba(255,255,255,0.04);
+                        border: 2px dashed rgba(59,130,246,0.35);
+                        border-radius: 14px;
+                        padding: 1.5rem 1rem;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        text-align: center;
+                    " onmouseover="this.style.borderColor='rgba(59,130,246,0.7)'; this.style.background='rgba(59,130,246,0.06)'"
+                       onmouseout="this.style.borderColor='rgba(59,130,246,0.35)'; this.style.background='rgba(255,255,255,0.04)'">
+                        <i class="bi bi-cloud-arrow-up-fill" style="font-size: 2rem; color: #3b82f6;"></i>
+                        <div>
+                            <span id="uploadLabel" style="color:#cbd5e1; font-size:0.9rem;">Klik atau seret file ke sini</span>
+                            <div style="color:#64748b; font-size:0.75rem; margin-top:0.25rem;">Format JPG / PNG · Maks 2MB</div>
+                        </div>
+                        <input type="file" name="bukti_kip" id="bukti_kip" accept="image/jpeg,image/png,image/jpg"
+                               required style="display:none;"
+                               onchange="updateUploadLabel(this)">
+                    </label>
                 </div>
+
             </div>
 
             <div class="mb-3">
@@ -351,7 +371,46 @@
     </div>
 
     <script>
+        // Custom file upload label update
+        function updateUploadLabel(input) {
+            const label   = document.getElementById('uploadLabel');
+            const zone    = document.getElementById('uploadZone');
+            if (input.files && input.files.length > 0) {
+                const file = input.files[0];
+                label.innerHTML = `<i class="bi bi-file-earmark-image me-1" style="color:#34d399;"></i><span style="color:#34d399; font-weight:600;">${file.name}</span>`;
+                zone.style.borderColor = 'rgba(16,185,129,0.5)';
+                zone.style.background  = 'rgba(16,185,129,0.05)';
+            } else {
+                label.textContent = 'Klik atau seret file ke sini';
+                zone.style.borderColor = 'rgba(59,130,246,0.35)';
+                zone.style.background  = 'rgba(255,255,255,0.04)';
+            }
+        }
+
+        // Drag-and-drop visual feedback for upload zone
+        const uploadZone = document.getElementById('uploadZone');
+        if (uploadZone) {
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.style.borderColor = 'rgba(59,130,246,0.9)';
+                uploadZone.style.background  = 'rgba(59,130,246,0.1)';
+            });
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.style.borderColor = 'rgba(59,130,246,0.35)';
+                uploadZone.style.background  = 'rgba(255,255,255,0.04)';
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('bukti_kip');
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    updateUploadLabel(fileInput);
+                }
+            });
+        }
+
         document.getElementById('togglePassword').addEventListener('click', function (e) {
+
             const password = document.getElementById('password');
             const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
             password.setAttribute('type', type);

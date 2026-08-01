@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
@@ -73,9 +74,9 @@ class AuthController extends Controller
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|min:6|confirmed',
+            'token'    => 'required',
+            'email'    => 'required|email',
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
         ]);
 
         $status = \Illuminate\Support\Facades\Password::broker()->reset(
@@ -104,7 +105,7 @@ class AuthController extends Controller
         $rules = [
             'name'      => 'required|string|max:255',
             'email'     => 'required|string|email|max:255|unique:pengguna',
-            'password'  => 'required|string|min:6|confirmed',
+            'password'  => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'nim'       => 'required|string|max:10|unique:mahasiswa,nim',
             'nomor_kip' => 'required|string|max:255',
             'jurusan'   => 'required|string|max:255',
@@ -118,7 +119,9 @@ class AuthController extends Controller
             'email.email'        => 'Format email tidak valid.',
             'email.unique'       => 'Email ini sudah terdaftar. Gunakan email lain atau login.',
             'password.required'  => 'Kata sandi wajib diisi.',
-            'password.min'       => 'Kata sandi minimal harus 6 karakter.',
+            'password.min'       => 'Kata sandi minimal harus 8 karakter.',
+            'password.letters'   => 'Kata sandi harus mengandung minimal 1 huruf.',
+            'password.numbers'   => 'Kata sandi harus mengandung minimal 1 angka.',
             'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
             'nim.required'       => 'NIM wajib diisi.',
             'nim.max'            => 'NIM tidak boleh lebih dari 10 karakter.',
@@ -144,7 +147,8 @@ class AuthController extends Controller
 
         $buktiPath = null;
         if ($request->hasFile('bukti_kip')) {
-            $buktiPath = $request->file('bukti_kip')->store('bukti_kip', 'public');
+            $file = $request->file('bukti_kip');
+            $buktiPath = $this->compressAndStoreImage($file, 'bukti_kip');
         }
 
         \App\Models\Mahasiswa::create([
@@ -208,11 +212,76 @@ class AuthController extends Controller
     private function redirectDashboard($role)
     {
         return match ($role) {
-            'admin' => redirect()->route('admin.dashboard'),
+            'admin'           => redirect()->route('admin.dashboard'),
             'pengurus_ormawa' => redirect()->route('pengurus.dashboard'),
-            'mahasiswa_kip' => redirect()->route('mahasiswa.dashboard'),
-            'wadir' => redirect()->route('wadir.dashboard'),
-            default => redirect()->route('login'),
+            'mahasiswa_kip'   => redirect()->route('mahasiswa.dashboard'),
+            'wadir'           => redirect()->route('wadir.dashboard'),
+            default           => redirect()->route('login'),
         };
+    }
+
+    /**
+     * Compress and store an uploaded image using PHP GD.
+     * Resizes to max 1200px wide and saves at 80% quality.
+     */
+    private function compressAndStoreImage($uploadedFile, string $directory): string
+    {
+        $extension = strtolower($uploadedFile->getClientOriginalExtension());
+        $filename  = uniqid() . '.' . $extension;
+        $destPath  = storage_path('app/' . $directory . '/' . $filename);
+
+        // Ensure directory exists
+        if (!is_dir(dirname($destPath))) {
+            mkdir(dirname($destPath), 0755, true);
+        }
+
+        $sourcePath = $uploadedFile->getRealPath();
+
+        // Create image resource from source
+        $srcImage = match ($extension) {
+            'jpg', 'jpeg' => imagecreatefromjpeg($sourcePath),
+            'png'         => imagecreatefrompng($sourcePath),
+            default       => null,
+        };
+
+        // If GD can't handle it, just store the original
+        if (!$srcImage) {
+            $uploadedFile->storeAs($directory, $filename, 'local');
+            return $directory . '/' . $filename;
+        }
+
+        $origW = imagesx($srcImage);
+        $origH = imagesy($srcImage);
+        $maxW  = 1200;
+
+        if ($origW > $maxW) {
+            $newW = $maxW;
+            $newH = (int) round($origH * ($maxW / $origW));
+        } else {
+            $newW = $origW;
+            $newH = $origH;
+        }
+
+        $resized = imagecreatetruecolor($newW, $newH);
+
+        // Preserve transparency for PNG
+        if ($extension === 'png') {
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+        }
+
+        imagecopyresampled($resized, $srcImage, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+        // Save compressed
+        if ($extension === 'png') {
+            imagepng($resized, $destPath, 7); // 0-9 compression, 7 = good balance
+        } else {
+            imagejpeg($resized, $destPath, 80); // 0-100 quality
+        }
+
+        imagedestroy($srcImage);
+        imagedestroy($resized);
+
+        return $directory . '/' . $filename;
     }
 }

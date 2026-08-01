@@ -171,46 +171,52 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 4. Seed Attendance (Kehadiran)
+        // Lookup keanggotaan records (created via attach above)
+        $keanggotaanRina = \App\Models\Keanggotaan::where('mahasiswa_id', $mahasiswa->id)
+            ->where('ormawa_id', 2)->first();
+        $keanggotaanBudi = \App\Models\Keanggotaan::where('mahasiswa_id', $mahasiswa2->id)
+            ->where('ormawa_id', 2)->first();
+
         // Rina (mahasiswa1) attendances: 2 Disetujui, 1 Pending (Total 3 activities)
         Kehadiran::create([
-            'kegiatan_id' => $kegiatan1->id,
-            'mahasiswa_id' => $mahasiswa->id,
-            'status_kehadiran' => 'Hadir',
+            'kegiatan_id'       => $kegiatan1->id,
+            'keanggotaan_id'    => $keanggotaanRina->id,
+            'status_kehadiran'  => 'Hadir',
             'status_verifikasi' => 'Disetujui',
-            'keterangan' => 'Hadir tepat waktu dan mengikuti seluruh acara.',
+            'keterangan'        => 'Hadir tepat waktu dan mengikuti seluruh acara.',
         ]);
 
         Kehadiran::create([
-            'kegiatan_id' => $kegiatan2->id,
-            'mahasiswa_id' => $mahasiswa->id,
-            'status_kehadiran' => 'Hadir',
+            'kegiatan_id'       => $kegiatan2->id,
+            'keanggotaan_id'    => $keanggotaanRina->id,
+            'status_kehadiran'  => 'Hadir',
             'status_verifikasi' => 'Disetujui',
-            'keterangan' => 'Hadir tepat waktu.',
+            'keterangan'        => 'Hadir tepat waktu.',
         ]);
 
         Kehadiran::create([
-            'kegiatan_id' => $kegiatan3->id,
-            'mahasiswa_id' => $mahasiswa->id,
-            'status_kehadiran' => 'Hadir',
+            'kegiatan_id'       => $kegiatan3->id,
+            'keanggotaan_id'    => $keanggotaanRina->id,
+            'status_kehadiran'  => 'Hadir',
             'status_verifikasi' => 'Pending',
-            'keterangan' => 'Mohon disetujui, sudah mengisi form kehadiran.',
+            'keterangan'        => 'Mohon disetujui, sudah mengisi form kehadiran.',
         ]);
 
-        // Budi (mahasiswa2) attendances: 1 Disetujui (Izin), 1 Ditolak, 1 Pending (Total 3 activities) -> Keaktifan 0% (Hadir Disetujui is 0) -> TIDAK AKTIF
+        // Budi (mahasiswa2) attendances: 1 Disetujui (Izin), 1 Ditolak, 1 Pending -> TIDAK AKTIF
         Kehadiran::create([
-            'kegiatan_id' => $kegiatan1->id,
-            'mahasiswa_id' => $mahasiswa2->id,
-            'status_kehadiran' => 'Izin',
+            'kegiatan_id'       => $kegiatan1->id,
+            'keanggotaan_id'    => $keanggotaanBudi->id,
+            'status_kehadiran'  => 'Izin',
             'status_verifikasi' => 'Disetujui',
-            'keterangan' => 'Sakit demam tinggi.',
+            'keterangan'        => 'Sakit demam tinggi.',
         ]);
 
         Kehadiran::create([
-            'kegiatan_id' => $kegiatan2->id,
-            'mahasiswa_id' => $mahasiswa2->id,
-            'status_kehadiran' => 'Tidak Hadir',
+            'kegiatan_id'       => $kegiatan2->id,
+            'keanggotaan_id'    => $keanggotaanBudi->id,
+            'status_kehadiran'  => 'Tidak Hadir',
             'status_verifikasi' => 'Ditolak',
-            'keterangan' => 'Tanpa keterangan.',
+            'keterangan'        => 'Tanpa keterangan.',
         ]);
     }
 }

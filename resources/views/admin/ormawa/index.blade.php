@@ -3,9 +3,26 @@
 
 @section('content')
 <div class="card card-custom p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h4 class="fw-bold mb-0"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Kelola Data Ormawa</h4>
         <button type="button" class="btn btn-gradient-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalTambahOrmawa"><i class="bi bi-plus-circle me-1"></i> Tambah Ormawa</button>
+    </div>
+
+    {{-- Filter Bar --}}
+    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+        <div class="position-relative" style="min-width: 220px;">
+            <i class="bi bi-search position-absolute" style="left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.85rem;"></i>
+            <input type="text" id="ormawaSearch" class="form-control form-control-sm ps-4" placeholder="Cari nama ormawa..." oninput="filterOrmawa()">
+        </div>
+        <select id="ormawaJenisFilter" class="form-select form-select-sm" style="max-width:160px;" onchange="filterOrmawa()">
+            <option value="">Semua Jenis</option>
+            <option value="BEM">BEM</option>
+            <option value="HMJ">HMJ</option>
+            <option value="UKM">UKM</option>
+            <option value="MPM">MPM</option>
+            <option value="Independen">Independen</option>
+        </select>
+        <small class="text-muted ms-1" id="ormawaCount"></small>
     </div>
 
     <div class="table-responsive">
@@ -260,6 +277,33 @@
         @foreach($ormawas as $ormawa)
             setupCascadingDropdown('edit_jurusan_{{ $ormawa->id }}', 'edit_prodi_{{ $ormawa->id }}', '{{ $ormawa->kategori_prodi }}');
         @endforeach
+
+        // Initialize count on load
+        filterOrmawa();
     });
+
+    // Client-side filter: Nama + Jenis
+    function filterOrmawa() {
+        const searchVal = (document.getElementById('ormawaSearch')?.value || '').toLowerCase();
+        const jenisVal  = (document.getElementById('ormawaJenisFilter')?.value || '').toLowerCase();
+        const rows = document.querySelectorAll('.datatable tbody tr');
+        let visible = 0;
+
+        rows.forEach(row => {
+            const nama  = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+            const jenis = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+            const matchSearch = !searchVal || nama.includes(searchVal);
+            const matchJenis  = !jenisVal  || jenis.includes(jenisVal);
+            if (matchSearch && matchJenis) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const countEl = document.getElementById('ormawaCount');
+        if (countEl) countEl.textContent = `Menampilkan ${visible} dari ${rows.length} ormawa`;
+    }
 </script>
 @endsection

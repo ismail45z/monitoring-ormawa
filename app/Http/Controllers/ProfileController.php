@@ -33,8 +33,8 @@ class ProfileController extends Controller
         // Specific validation rules for mahasiswa_kip
         if ($user->role === 'mahasiswa_kip') {
             $rules = array_merge($rules, [
-                'nim' => ['required', 'string', 'max:10', \Illuminate\Validation\Rule::unique('mahasiswa')->ignore($user->mahasiswa->id)],
-                'no_kip' => ['required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('mahasiswa')->ignore($user->mahasiswa->id)],
+                'nim' => ['required', 'string', 'max:10', \Illuminate\Validation\Rule::unique('mahasiswa')->ignore($user->mahasiswa?->id)],
+                'no_kip' => ['required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('mahasiswa')->ignore($user->mahasiswa?->id)],
                 'jurusan' => ['required', 'string', 'max:255'],
                 'prodi' => ['required', 'string', 'max:255'],
                 'angkatan' => ['required', 'integer', 'min:2000', 'max:' . (date('Y') + 1)],
@@ -74,10 +74,12 @@ class ProfileController extends Controller
             ];
 
             if ($request->hasFile('bukti_kip')) {
-                if ($user->mahasiswa->bukti_kip && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->mahasiswa->bukti_kip)) {
+                if ($user->mahasiswa->bukti_kip && \Illuminate\Support\Facades\Storage::disk('local')->exists($user->mahasiswa->bukti_kip)) {
+                    \Illuminate\Support\Facades\Storage::disk('local')->delete($user->mahasiswa->bukti_kip);
+                } elseif ($user->mahasiswa->bukti_kip && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->mahasiswa->bukti_kip)) {
                     \Illuminate\Support\Facades\Storage::disk('public')->delete($user->mahasiswa->bukti_kip);
                 }
-                $mahasiswaData['bukti_kip'] = $request->file('bukti_kip')->store('bukti_kip', 'public');
+                $mahasiswaData['bukti_kip'] = $request->file('bukti_kip')->store('bukti_kip', 'local');
             }
 
             $user->mahasiswa->update($mahasiswaData);

@@ -120,6 +120,13 @@
 
 </div>
 
+{{-- Pagination --}}
+@if($kegiatans->hasPages())
+<div class="d-flex justify-content-center mt-4">
+    {{ $kegiatans->links() }}
+</div>
+@endif
+
 @if($errors->any() && old('kegiatan_id'))
     @section('scripts')
     <script>

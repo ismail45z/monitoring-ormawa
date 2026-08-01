@@ -57,14 +57,15 @@
                         <td>{{ $kh->keterangan ?? '-' }}</td>
                         <td>
                             @if($kh->bukti_foto)
-                                <div class="position-relative d-inline-block">
-                                    <img src="{{ asset('storage/' . $kh->bukti_foto) }}" 
-                                         alt="Bukti" 
-                                         class="rounded border border-secondary border-opacity-25" 
-                                         style="width: 45px; height: 45px; object-fit: cover; cursor: pointer; transition: transform 0.2s;"
-                                         onmouseover="this.style.transform='scale(1.12)'"
+                                <div class="d-flex justify-content-center">
+                                    <img src="{{ route('secure.file', ['path' => $kh->bukti_foto]) }}" 
+                                         alt="Bukti Foto" 
+                                         class="bukti-foto-thumb rounded shadow-sm border border-2 border-primary" 
+                                         style="width: 44px; height: 44px; object-fit: cover; cursor: pointer; transition: transform 0.2s;"
+                                         title="Klik untuk memperbesar"
+                                         onmouseover="this.style.transform='scale(1.15)'"
                                          onmouseout="this.style.transform='scale(1)'"
-                                         onclick="showQuickPhoto('{{ asset('storage/' . $kh->bukti_foto) }}', '{{ $kh->keanggotaan->mahasiswa->pengguna->nama }}')">
+                                         onclick="showQuickPhoto('{{ route('secure.file', ['path' => $kh->bukti_foto]) }}', '{{ $kh->keanggotaan->mahasiswa->pengguna->nama }}')">
                                 </div>
                             @else
                                 <span class="text-muted small">-</span>
@@ -125,16 +126,41 @@
 
 <!-- Modal Quick Photo Preview -->
 <div class="modal fade" id="quickPhotoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-transparent border-0">
-            <div class="modal-body text-center p-0 position-relative">
-                <img src="" id="quickPhotoImg" class="img-fluid rounded shadow-lg border border-light border-2" style="max-height: 80vh; object-fit: contain;">
-                <div class="bg-dark bg-opacity-70 text-white py-2 px-3 rounded-bottom position-absolute bottom-0 start-0 end-0">
-                    <span id="quickPhotoTitle"></span>
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+            <!-- Header -->
+            <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #1e3a5f, #0d6efd);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-circle bg-white bg-opacity-25">
+                        <i class="bi bi-camera-fill text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title text-white fw-bold mb-0">Bukti Foto Kehadiran</h6>
+                        <small id="quickPhotoTitle" class="text-white text-opacity-75"></small>
+                    </div>
                 </div>
-                <button type="button" class="btn btn-light btn-sm rounded-circle position-absolute top-0 end-0 mt-2 me-2 shadow" data-bs-dismiss="modal">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <!-- Body -->
+            <div class="modal-body p-0 text-center bg-dark" style="min-height: 300px;">
+                <!-- Loading spinner -->
+                <div id="quickPhotoLoading" class="d-flex align-items-center justify-content-center" style="height: 300px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <img src="" id="quickPhotoImg"
+                     class="img-fluid w-100 d-none"
+                     style="max-height: 70vh; object-fit: contain;"
+                     onload="document.getElementById('quickPhotoLoading').classList.add('d-none'); this.classList.remove('d-none');"
+                     alt="Bukti Foto">
+            </div>
+            <!-- Footer -->
+            <div class="modal-footer border-0 bg-dark justify-content-between py-2 px-3">
+                <span class="text-white text-opacity-50 small"><i class="bi bi-shield-check me-1"></i>Dokumen Kehadiran Terverifikasi</span>
+                <a id="quickPhotoDownload" href="#" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                    <i class="bi bi-download me-1"></i>Unduh
+                </a>
             </div>
         </div>
     </div>
@@ -145,9 +171,21 @@
 <script>
     // Quick Photo Preview
     function showQuickPhoto(url, name) {
-        document.getElementById('quickPhotoImg').src = url;
-        document.getElementById('quickPhotoTitle').innerText = 'Foto Bukti: ' + name;
-        const modal = new bootstrap.Modal(document.getElementById('quickPhotoModal'));
+        // Reset state
+        const img = document.getElementById('quickPhotoImg');
+        const loading = document.getElementById('quickPhotoLoading');
+        img.classList.add('d-none');
+        loading.classList.remove('d-none');
+
+        // Set content
+        img.src = url;
+        document.getElementById('quickPhotoTitle').innerText = name;
+        document.getElementById('quickPhotoDownload').href = url;
+
+        const modal = new bootstrap.Modal(document.getElementById('quickPhotoModal'), {
+            backdrop: true,
+            keyboard: true
+        });
         modal.show();
     }
 
