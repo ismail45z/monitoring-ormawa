@@ -77,8 +77,12 @@
                                                 <label class="form-label">Periode</label>
                                                 <select name="periode_id" class="form-select" required>
                                                     <option value="">Pilih Periode...</option>
-                                                    @foreach($periodes as $p)
-                                                        <option value="{{ $p->id }}" {{ old('periode_id', $kegiatan->periode_id) == $p->id ? 'selected' : '' }}>{{ $p->tahun }} - {{ $p->semester }}</option>
+                                                    @foreach($periodes->sortByDesc('tanggal_mulai') as $p)
+                                                        <option value="{{ $p->id }}" {{ old('periode_id', $kegiatan->periode_id) == $p->id ? 'selected' : '' }}>
+                                                            {{ $p->tahun }} - {{ $p->semester }}
+                                                            (Mulai: {{ \Carbon\Carbon::parse($p->tanggal_mulai)->format('d M Y') }})
+                                                            {{ $p->status === 'Aktif' ? '✓ Aktif' : '' }}
+                                                        </option>
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -173,10 +177,18 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Periode</label>
+                    @php
+                        $latestPeriode = $periodes->sortByDesc('tanggal_mulai')->first();
+                    @endphp
                     <select name="periode_id" class="form-select" required>
                         <option value="">Pilih Periode...</option>
-                        @foreach($periodes as $p)
-                            <option value="{{ $p->id }}" {{ old('periode_id') == $p->id ? 'selected' : '' }}>{{ $p->tahun }} - {{ $p->semester }}</option>
+                        @foreach($periodes->sortByDesc('tanggal_mulai') as $p)
+                            <option value="{{ $p->id }}"
+                                {{ old('periode_id', $latestPeriode?->id) == $p->id ? 'selected' : '' }}>
+                                {{ $p->tahun }} - {{ $p->semester }}
+                                (Mulai: {{ \Carbon\Carbon::parse($p->tanggal_mulai)->format('d M Y') }})
+                                {{ $p->status === 'Aktif' ? '✓ Aktif' : '' }}
+                            </option>
                         @endforeach
                     </select>
                 </div>

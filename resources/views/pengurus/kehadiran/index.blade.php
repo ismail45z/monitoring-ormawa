@@ -6,7 +6,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h4 class="fw-bold mb-0"><i class="bi bi-check-circle-fill text-primary me-2"></i>Verifikasi Kehadiran Mahasiswa KIP-K</h4>
         <div>
-            <button type="button" id="btnBulkApprove" class="btn btn-success rounded-pill px-4 shadow-sm disabled" onclick="bulkApprove()">
+            <button type="button" id="btnBulkApprove" class="btn btn-success rounded-pill px-4 shadow-sm disabled" onclick="showBulkConfirmModal()">
                 <i class="bi bi-check-all me-1"></i>Setujui Massal (<span id="selectedCount">0</span>)
             </button>
         </div>
@@ -100,13 +100,17 @@
                                             </form>
                                             
                                             <!-- Tolak Form -->
-                                            <form action="{{ route('pengurus.kehadiran.reject', $kh->id) }}" method="POST" class="ajax-verify-form" onsubmit="return confirm('Apakah Anda yakin ingin MENOLAK kehadiran ini?')">
+                                            <form action="{{ route('pengurus.kehadiran.reject', $kh->id) }}" method="POST" class="ajax-verify-form needs-reject-confirm">
                                                 @csrf
                                                 <div class="mb-2">
                                                     <label class="form-label text-danger fw-bold"><i class="bi bi-x-circle"></i> Opsi Tolak</label>
                                                     <textarea name="keterangan_verifikasi" class="form-control" rows="2" placeholder="Alasan penolakan (Wajib diisi)" required></textarea>
                                                 </div>
-                                                <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-x-lg"></i> Tolak Kehadiran</button>
+                                                <button type="button" class="btn btn-outline-danger w-100 btn-reject-trigger"
+                                                    data-nama="{{ $kh->keanggotaan->mahasiswa->pengguna->nama }}"
+                                                    data-kegiatan="{{ $kh->kegiatan->nama_kegiatan }}">
+                                                    <i class="bi bi-x-lg"></i> Tolak Kehadiran
+                                                </button>
                                             </form>
                                         </div>
                                     </div>
@@ -165,19 +169,129 @@
         </div>
     </div>
 </div>
+
+<!-- =====================================================
+     CUSTOM CONFIRM MODAL — Bulk Approve
+====================================================== -->
+<div class="modal fade" id="bulkConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+            <!-- Gradient header -->
+            <div class="modal-header border-0 text-white py-4 px-4"
+                 style="background: linear-gradient(135deg, #1a7f3c, #28a745);">
+                <div class="d-flex align-items-center gap-3 w-100">
+                    <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center"
+                         style="width: 48px; height: 48px; flex-shrink: 0;">
+                        <i class="bi bi-check-all fs-4 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white">Konfirmasi Persetujuan Massal</h5>
+                        <small class="text-white text-opacity-75">Tindakan ini tidak dapat dibatalkan</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body px-4 py-4 text-center">
+                <div class="mb-3">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                         style="width: 72px; height: 72px; background: rgba(40,167,69,0.12);">
+                        <i class="bi bi-person-check-fill text-success" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                <p class="fw-semibold fs-6 text-dark mb-1">
+                    Anda akan menyetujui
+                    <span class="text-success fw-bold" id="bulkCountLabel">0</span>
+                    absensi yang dipilih.
+                </p>
+                <p class="text-muted small mb-0">
+                    Semua kehadiran yang dipilih akan berubah status menjadi
+                    <span class="badge bg-success">Disetujui</span>
+                    dan poin akan terhitung otomatis.
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer border-0 px-4 pb-4 pt-0 gap-2">
+                <button type="button" class="btn btn-light rounded-pill px-4 flex-fill"
+                        data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Batal
+                </button>
+                <button type="button" class="btn btn-success rounded-pill px-4 flex-fill fw-semibold shadow-sm"
+                        id="btnConfirmBulkApprove">
+                    <i class="bi bi-check-all me-1"></i>Ya, Setujui Semua
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================
+     CUSTOM CONFIRM MODAL — Reject Kehadiran
+====================================================== -->
+<div class="modal fade" id="rejectConfirmModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+            <!-- Gradient header -->
+            <div class="modal-header border-0 text-white py-4 px-4"
+                 style="background: linear-gradient(135deg, #b02a37, #dc3545);">
+                <div class="d-flex align-items-center gap-3 w-100">
+                    <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center"
+                         style="width: 48px; height: 48px; flex-shrink: 0;">
+                        <i class="bi bi-x-circle-fill fs-4 text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white">Konfirmasi Penolakan</h5>
+                        <small class="text-white text-opacity-75">Tindakan ini tidak dapat dibatalkan</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body px-4 py-4 text-center">
+                <div class="mb-3">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                         style="width: 72px; height: 72px; background: rgba(220,53,69,0.12);">
+                        <i class="bi bi-person-x-fill text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                <p class="fw-semibold fs-6 text-dark mb-1">
+                    Tolak kehadiran <span class="text-danger fw-bold" id="rejectNamaLabel">-</span>?
+                </p>
+                <p class="text-muted small mb-0">
+                    Kegiatan: <strong id="rejectKegiatanLabel">-</strong><br>
+                    Status akan berubah menjadi
+                    <span class="badge bg-danger">Ditolak</span>
+                    dan tidak akan dihitung sebagai keaktifan.
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer border-0 px-4 pb-4 pt-0 gap-2">
+                <button type="button" class="btn btn-light rounded-pill px-4 flex-fill"
+                        id="btnCancelReject">
+                    <i class="bi bi-arrow-left me-1"></i>Kembali
+                </button>
+                <button type="button" class="btn btn-danger rounded-pill px-4 flex-fill fw-semibold shadow-sm"
+                        id="btnConfirmReject">
+                    <i class="bi bi-x-lg me-1"></i>Ya, Tolak
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
 <script>
     // Quick Photo Preview
     function showQuickPhoto(url, name) {
-        // Reset state
         const img = document.getElementById('quickPhotoImg');
         const loading = document.getElementById('quickPhotoLoading');
         img.classList.add('d-none');
         loading.classList.remove('d-none');
 
-        // Set content
         img.src = url;
         document.getElementById('quickPhotoTitle').innerText = name;
         document.getElementById('quickPhotoDownload').href = url;
@@ -227,7 +341,6 @@
         const container = $('#ajaxAlertContainer');
         container.append(alertHtml);
         
-        // Auto remove toast after 4 seconds
         setTimeout(() => {
             container.find('.toast').first().fadeOut(300, function() {
                 $(this).remove();
@@ -249,75 +362,38 @@
         }
     }
 
-    // Individual AJAX Verification Form Submit
-    $(document).ready(function() {
-        // Handle select all change state when row checkboxes are checked
-        $(document).on('change', '.attendance-checkbox', function() {
-            const allCheckboxCount = $('.attendance-checkbox').length;
-            const checkedCheckboxCount = $('.attendance-checkbox:checked').length;
-            $('#selectAll').prop('checked', allCheckboxCount === checkedCheckboxCount);
-        });
-
-        // Intercept form submit
-        $(document).on('submit', '.ajax-verify-form', function(e) {
-            e.preventDefault();
-            const form = $(this);
-            const url = form.attr('action');
-            const data = form.serialize();
-            const modalElement = form.closest('.modal');
-            const modalId = modalElement.attr('id');
-            const row = form.closest('tr');
-            
-            // Disable buttons to prevent double click
-            form.find('button[type="submit"]').addClass('disabled');
-
-            $.ajax({
-                url: url,
-                method: 'POST',
-                data: data,
-                success: function(response) {
-                    // Close modal using bootstrap API
-                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById(modalId));
-                    if (modalInstance) {
-                        modalInstance.hide();
-                    }
-                    
-                    // Remove row with slideUp/fadeOut
-                    row.fadeOut(400, function() {
-                        $(this).remove();
-                        updateSelectedCount();
-                        // Check if no more records
-                        if ($('#attendanceTable tbody tr[id^="row-"]').length === 0) {
-                            $('#attendanceTable tbody').html('<tr><td colspan="10" class="text-center text-muted py-4">Semua absensi telah diverifikasi!</td></tr>');
-                        }
-                    });
-                    
-                    showFloatingAlert('success', response.message || 'Verifikasi berhasil disimpan.');
-                    updateNotificationBadge(1);
-                },
-                error: function(xhr) {
-                    form.find('button[type="submit"]').removeClass('disabled');
-                    const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal memproses verifikasi. Silakan coba lagi.';
-                    showFloatingAlert('danger', errorMsg);
-                }
-            });
-        });
-    });
-
-    // Bulk Approve AJAX Submit
-    function bulkApprove() {
+    // -------------------------------------------------------
+    // CUSTOM CONFIRM: Bulk Approve Modal
+    // -------------------------------------------------------
+    function showBulkConfirmModal() {
         const selectedIds = [];
         $('.attendance-checkbox:checked').each(function() {
             selectedIds.push($(this).val());
         });
-        
         if (selectedIds.length === 0) return;
-        
-        if (!confirm(`Setujui ${selectedIds.length} absensi yang terpilih secara massal?`)) return;
-        
+
+        $('#bulkCountLabel').text(selectedIds.length);
+        const modal = new bootstrap.Modal(document.getElementById('bulkConfirmModal'));
+        modal.show();
+    }
+
+    $('#btnConfirmBulkApprove').on('click', function() {
+        const modalEl = document.getElementById('bulkConfirmModal');
+        bootstrap.Modal.getInstance(modalEl).hide();
+        executeBulkApprove();
+    });
+
+    function executeBulkApprove() {
+        const selectedIds = [];
+        $('.attendance-checkbox:checked').each(function() {
+            selectedIds.push($(this).val());
+        });
+
+        if (selectedIds.length === 0) return;
+
         const btn = $('#btnBulkApprove');
         btn.addClass('disabled');
-        
+
         $.ajax({
             url: "{{ route('pengurus.kehadiran.bulk-approve') }}",
             method: 'POST',
@@ -327,7 +403,6 @@
             },
             success: function(response) {
                 if (response.success) {
-                    // Remove selected rows
                     selectedIds.forEach(id => {
                         $(`#row-${id}`).fadeOut(400, function() {
                             $(this).remove();
@@ -336,13 +411,10 @@
                             }
                         });
                     });
-                    
-                    // Reset select all and count
+
                     $('#selectAll').prop('checked', false);
-                    setTimeout(() => {
-                        updateSelectedCount();
-                    }, 500);
-                    
+                    setTimeout(() => { updateSelectedCount(); }, 500);
+
                     showFloatingAlert('success', response.message);
                     updateNotificationBadge(selectedIds.length);
                 } else {
@@ -356,5 +428,93 @@
             }
         });
     }
+
+    // -------------------------------------------------------
+    // CUSTOM CONFIRM: Reject Kehadiran Modal
+    // -------------------------------------------------------
+    let pendingRejectForm = null;
+
+    $(document).on('click', '.btn-reject-trigger', function() {
+        const nama     = $(this).data('nama');
+        const kegiatan = $(this).data('kegiatan');
+        const form     = $(this).closest('form');
+
+        // Cek textarea alasan terisi dulu
+        const alasan = form.find('textarea[name="keterangan_verifikasi"]').val().trim();
+        if (!alasan) {
+            form.find('textarea[name="keterangan_verifikasi"]').addClass('is-invalid').focus();
+            return;
+        }
+        form.find('textarea[name="keterangan_verifikasi"]').removeClass('is-invalid');
+
+        pendingRejectForm = form;
+        $('#rejectNamaLabel').text(nama);
+        $('#rejectKegiatanLabel').text(kegiatan);
+
+        const rejectModal = new bootstrap.Modal(document.getElementById('rejectConfirmModal'), { backdrop: 'static' });
+        rejectModal.show();
+    });
+
+    $('#btnCancelReject').on('click', function() {
+        bootstrap.Modal.getInstance(document.getElementById('rejectConfirmModal')).hide();
+        pendingRejectForm = null;
+    });
+
+    $('#btnConfirmReject').on('click', function() {
+        bootstrap.Modal.getInstance(document.getElementById('rejectConfirmModal')).hide();
+        if (pendingRejectForm) {
+            pendingRejectForm.trigger('submit');
+            pendingRejectForm = null;
+        }
+    });
+
+    // -------------------------------------------------------
+    // Individual AJAX Verification Form Submit
+    // -------------------------------------------------------
+    $(document).ready(function() {
+        $(document).on('change', '.attendance-checkbox', function() {
+            const allCheckboxCount = $('.attendance-checkbox').length;
+            const checkedCheckboxCount = $('.attendance-checkbox:checked').length;
+            $('#selectAll').prop('checked', allCheckboxCount === checkedCheckboxCount);
+        });
+
+        $(document).on('submit', '.ajax-verify-form', function(e) {
+            e.preventDefault();
+            const form = $(this);
+            const url  = form.attr('action');
+            const data = form.serialize();
+            const modalElement = form.closest('.modal');
+            const modalId = modalElement.attr('id');
+            const row = form.closest('tr');
+
+            form.find('button[type="submit"]').addClass('disabled');
+
+            $.ajax({
+                url: url,
+                method: 'POST',
+                data: data,
+                success: function(response) {
+                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                    if (modalInstance) { modalInstance.hide(); }
+
+                    row.fadeOut(400, function() {
+                        $(this).remove();
+                        updateSelectedCount();
+                        if ($('#attendanceTable tbody tr[id^="row-"]').length === 0) {
+                            $('#attendanceTable tbody').html('<tr><td colspan="10" class="text-center text-muted py-4">Semua absensi telah diverifikasi!</td></tr>');
+                        }
+                    });
+
+                    showFloatingAlert('success', response.message || 'Verifikasi berhasil disimpan.');
+                    updateNotificationBadge(1);
+                },
+                error: function(xhr) {
+                    form.find('button[type="submit"]').removeClass('disabled');
+                    const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal memproses verifikasi. Silakan coba lagi.';
+                    showFloatingAlert('danger', errorMsg);
+                }
+            });
+        });
+    });
 </script>
 @endsection

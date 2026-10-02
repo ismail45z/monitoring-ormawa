@@ -82,7 +82,7 @@ class DashboardController extends Controller
 
         // Upcoming events (next 7 days)
         $upcomingEvents = Kegiatan::where('ormawa_id', $ormawa->id)
-            ->whereBetween('tanggal', [now()->toDateString(), now()->addDays(7)->toDateString()])
+            ->whereBetween('tanggal', [now()->toDateString(), now()->copy()->addDays(7)->toDateString()])
             ->orderBy('tanggal', 'asc')
             ->get();
 
@@ -188,6 +188,7 @@ class DashboardController extends Controller
         $ormawaId = $request->ormawa_id;
         $startDate = $request->tanggal_mulai;
         $endDate = $request->tanggal_selesai;
+        $statusKeaktifanFilter = $request->status_keaktifan; // null = semua
 
         $totalMahasiswa = Mahasiswa::count();
         $totalOrmawa    = Ormawa::count();
@@ -198,11 +199,16 @@ class DashboardController extends Controller
             $studentsQuery->whereHas('ormawas', fn($q) => $q->where('ormawa.id', $ormawaId));
         }
         $students = $studentsQuery->get();
-        
-        $aktifCount     = 0;
-        $tidakAktifCount= 0;
-        $watchlist      = [];
-        $studentStatusMap = []; // track if student has been counted
+
+        $aktifCount       = 0;
+        $tidakAktifCount  = 0;
+        $watchlist        = [];
+        $studentStatusMap = [];
+        $allStudentList   = [];
+        $countSangatAktif = 0;
+        $countAktif       = 0;
+        $countCukup       = 0;
+        $countTidakAktif  = 0;
 
         $keaktifanService = new \App\Services\KeaktifanService();
 
@@ -211,7 +217,7 @@ class DashboardController extends Controller
             if ($ormawaId) {
                 $ormawasStudent = $ormawasStudent->where('id', $ormawaId);
             }
-            $studentActive = true; // assume active unless proven inactive in any ormawa
+            $studentActive = true;
 
             foreach ($ormawasStudent as $ormawa) {
                 $cacheKey = "rekap_{$student->id}_{$ormawa->id}_" . ($startDate ?? 'all') . '_' . ($endDate ?? 'now');
@@ -219,21 +225,47 @@ class DashboardController extends Controller
                     return $keaktifanService->hitungRekap($student, $ormawa, $startDate, $endDate);
                 });
 
-                if ($rekap['persentase'] < 60) {
+                $persen = $rekap['persentase'];
+
+                // Determine status label
+                if ($persen >= 80) {
+                    $statusLabel = 'Sangat Aktif';
+                    $countSangatAktif++;
+                } elseif ($persen >= 60) {
+                    $statusLabel = 'Aktif';
+                    $countAktif++;
+                } elseif ($persen >= 40) {
+                    $statusLabel = 'Cukup';
+                    $countCukup++;
+                } else {
+                    $statusLabel = 'Tidak Aktif';
+                    $countTidakAktif++;
+                }
+
+                if ($persen < 60) {
                     $studentActive = false;
-                    // Add entry for this ormawa to watchlist
                     $watchlist[] = [
                         'student'        => $student,
                         'ormawa'         => $ormawa->nama_ormawa,
                         'total_poin_maks'=> $rekap['totalPoinMaks'],
                         'total_poin'     => $rekap['totalPoin'],
                         'total_kegiatan' => $rekap['totalKegiatan'],
-                        'persentase'     => $rekap['persentase'],
+                        'persentase'     => $persen,
+                        'status'         => $statusLabel,
                     ];
                 }
+
+                $allStudentList[] = [
+                    'student'        => $student,
+                    'ormawa'         => $ormawa->nama_ormawa,
+                    'total_poin_maks'=> $rekap['totalPoinMaks'],
+                    'total_poin'     => $rekap['totalPoin'],
+                    'total_kegiatan' => $rekap['totalKegiatan'],
+                    'persentase'     => $persen,
+                    'status'         => $statusLabel,
+                ];
             }
 
-            // Count active/inactive per student (not per ormawa)
             if (!isset($studentStatusMap[$student->id])) {
                 $studentStatusMap[$student->id] = true;
                 if ($studentActive) {
@@ -265,7 +297,7 @@ class DashboardController extends Controller
 
             if ($totalStud > 0) {
                 foreach ($studentsInOrmawa as $s) {
-                    $cacheKey = "rekap_{$s->id}_{$o->id}_all_now";
+                    $cacheKey = "rekap_{$s->id}_{$o->id}_" . ($startDate ?? 'all') . '_' . ($endDate ?? 'now');
                     $rekap = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($s, $o, $startDate, $endDate, $keaktifanService) {
                         return $keaktifanService->hitungRekap($s, $o, $startDate, $endDate);
                     });
@@ -279,6 +311,12 @@ class DashboardController extends Controller
             $chartData[] = $avgPercentage;
         }
 
+        // Filter allStudentList by status keaktifan if requested, then sort
+        if ($statusKeaktifanFilter) {
+            $allStudentList = array_values(array_filter($allStudentList, fn($item) => $item['status'] === $statusKeaktifanFilter));
+        }
+        usort($allStudentList, fn($a, $b) => $b['persentase'] <=> $a['persentase']);
+
         $ormawas = Ormawa::all(); // For the filter dropdown options
 
         return view('dashboard.wadir', compact(
@@ -289,7 +327,13 @@ class DashboardController extends Controller
             'watchlist',
             'chartLabels',
             'chartData',
-            'ormawas'
+            'ormawas',
+            'allStudentList',
+            'statusKeaktifanFilter',
+            'countSangatAktif',
+            'countAktif',
+            'countCukup',
+            'countTidakAktif'
         ));
     }
 }

@@ -24,6 +24,10 @@ class PenggunaController extends Controller
             $query->where('role', $request->role);
         }
 
+        if ($request->filled('status')) {
+            $query->where('status_akun', $request->status);
+        }
+
         $pendingCount = Pengguna::where('status_akun', 'pending')->count();
         $ormawas = Ormawa::all(); // Fetched for the Add User modal
 

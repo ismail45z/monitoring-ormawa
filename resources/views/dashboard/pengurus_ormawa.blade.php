@@ -144,6 +144,16 @@
                                 {{ substr($evt->waktu_mulai, 0, 5) }} - {{ substr($evt->waktu_selesai, 0, 5) }}
                                 &bull; {{ $evt->tempat }}
                             </small>
+                            @php
+                                $diffDays = (int) \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($evt->tanggal), false);
+                            @endphp
+                            @if($diffDays == 0)
+                                <span class="badge bg-success ms-1" style="font-size:0.7rem;">Hari ini</span>
+                            @elseif($diffDays == 1)
+                                <span class="badge bg-primary ms-1" style="font-size:0.7rem;">Besok</span>
+                            @else
+                                <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">{{ $diffDays }} hari lagi</span>
+                            @endif
                         </div>
                     </div>
                 @empty

@@ -327,6 +327,13 @@
                                         $notifCount = \App\Models\Kehadiran::whereHas('kegiatan', fn($q) => $q->where('ormawa_id', $ormawaId))
                                             ->where('status_verifikasi', 'Pending')
                                             ->count();
+                                    } elseif (Auth::user()->role === 'admin') {
+                                        $pendingUsers = \App\Models\Pengguna::where('status_akun', 'pending')
+                                            ->orderBy('created_at', 'desc')
+                                            ->take(5)
+                                            ->get();
+                                        $notifCount = \App\Models\Pengguna::where('status_akun', 'pending')->count();
+                                        $notifItems = $pendingUsers;
                                     }
                                 @endphp
 
@@ -350,6 +357,8 @@
                                                 Pengumuman Ormawa
                                             @elseif(Auth::user()->role === 'pengurus_ormawa')
                                                 Kehadiran Perlu Diverifikasi
+                                            @elseif(Auth::user()->role === 'admin')
+                                                Verifikasi Pengguna Baru
                                             @else
                                                 Notifikasi
                                             @endif
@@ -390,6 +399,26 @@
                                                         </div>
                                                     </a>
                                                 </li>
+                                            @elseif(Auth::user()->role === 'admin')
+                                                @foreach($notifItems as $pendingUser)
+                                                    <li>
+                                                        <a href="{{ route('admin.pengguna.index', ['status' => 'pending']) }}" class="dropdown-item py-2" style="white-space: normal;">
+                                                            <div class="d-flex align-items-start">
+                                                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 me-2"
+                                                                     style="width:32px;height:32px;background:rgba(234,179,8,0.15);">
+                                                                    <i class="bi bi-person-fill-exclamation text-warning" style="font-size:1rem;"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <div class="fw-semibold small">{{ Str::limit($pendingUser->nama, 28) }}</div>
+                                                                    <div class="text-muted" style="font-size:0.73rem;">
+                                                                        {{ str_replace('_', ' ', $pendingUser->role) }} &bull;
+                                                                        {{ $pendingUser->created_at->diffForHumans() }}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </a>
+                                                    </li>
+                                                @endforeach
                                             @endif
                                         @endif
 
@@ -402,6 +431,10 @@
                                             @elseif(Auth::user()->role === 'pengurus_ormawa')
                                                 <a href="{{ route('pengurus.kehadiran.index') }}" class="small text-primary text-decoration-none">
                                                     Buka halaman verifikasi <i class="bi bi-arrow-right"></i>
+                                                </a>
+                                            @elseif(Auth::user()->role === 'admin')
+                                                <a href="{{ route('admin.pengguna.index', ['status' => 'pending']) }}" class="small text-warning fw-semibold text-decoration-none">
+                                                    Lihat semua pendaftaran <i class="bi bi-arrow-right"></i>
                                                 </a>
                                             @endif
                                         </li>

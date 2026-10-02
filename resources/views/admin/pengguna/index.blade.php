@@ -17,8 +17,12 @@
 
     <!-- Filter & Search Form -->
     <form action="{{ route('admin.pengguna.index') }}" method="GET" class="mb-4 row g-2">
-        <div class="col-md-4">
-            <input type="text" name="search" class="form-control" placeholder="Cari Nama atau Email..." value="{{ request('search') }}">
+        <div class="col-md-3">
+            <select name="status" class="form-select">
+                <option value="">Semua Status</option>
+                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>⏳ Menunggu Verifikasi</option>
+                <option value="aktif" {{ request('status') == 'aktif' ? 'selected' : '' }}>✅ Aktif</option>
+            </select>
         </div>
         <div class="col-md-3">
             <select name="role" class="form-select">
@@ -29,13 +33,32 @@
                 <option value="wadir" {{ request('role') == 'wadir' ? 'selected' : '' }}>Wadir</option>
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
+            <input type="text" name="search" class="form-control" placeholder="Cari Nama atau Email..." value="{{ request('search') }}">
+        </div>
+        <div class="col-md-2">
             <button class="btn btn-primary" type="submit"><i class="bi bi-filter"></i> Filter</button>
-            @if(request('search') || request('role'))
+            @if(request('search') || request('role') || request('status'))
                 <a href="{{ route('admin.pengguna.index') }}" class="btn btn-outline-secondary">Reset</a>
             @endif
         </div>
     </form>
+
+    @if($pendingCount > 0 && !request('status'))
+    <div class="alert alert-warning alert-dismissible fade show rounded-3 d-flex align-items-center gap-3 mb-4" role="alert">
+        <div class="flex-shrink-0">
+            <i class="bi bi-person-fill-exclamation fs-3"></i>
+        </div>
+        <div class="flex-grow-1">
+            <strong>Ada {{ $pendingCount }} pengguna baru menunggu verifikasi!</strong>
+            <div class="small mt-1">Mahasiswa atau pengurus ormawa yang baru mendaftar perlu disetujui sebelum dapat menggunakan sistem.</div>
+        </div>
+        <a href="{{ route('admin.pengguna.index', ['status' => 'pending']) }}" class="btn btn-warning btn-sm rounded-pill px-3 flex-shrink-0">
+            <i class="bi bi-shield-check me-1"></i> Verifikasi Sekarang
+        </a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
 
     <div class="table-responsive">
         <table class="table align-middle">

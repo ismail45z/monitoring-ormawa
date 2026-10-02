@@ -235,6 +235,12 @@ class AuthController extends Controller
             mkdir(dirname($destPath), 0755, true);
         }
 
+        // Jika ekstensi GD tidak tersedia, simpan file asli tanpa kompresi
+        if (!extension_loaded('gd')) {
+            $uploadedFile->storeAs($directory, $filename, 'local');
+            return $directory . '/' . $filename;
+        }
+
         $sourcePath = $uploadedFile->getRealPath();
 
         // Create image resource from source

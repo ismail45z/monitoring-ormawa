@@ -7,6 +7,8 @@ use App\Models\Kehadiran;
 use App\Models\Mahasiswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class MahasiswaFeaturesController extends Controller
 {
@@ -25,9 +27,11 @@ class MahasiswaFeaturesController extends Controller
         $ormawas = $mahasiswa->ormawas;
 
         if ($ormawas->isEmpty()) {
-            $kegiatans = collect();
+            // Gunakan LengthAwarePaginator kosong agar $kegiatans->hasPages() tidak error di view
+            $kegiatans = new LengthAwarePaginator([], 0, 12);
+            $alreadyLogged = [];
             $msg = 'Anda belum terdaftar di Ormawa manapun. Silakan minta Admin untuk menghubungkan Anda dengan Ormawa.';
-            return view('mahasiswa.kegiatan.index', compact('kegiatans'))->with('info', $msg);
+            return view('mahasiswa.kegiatan.index', compact('kegiatans', 'alreadyLogged'))->with('info', $msg);
         }
 
         $ormawaIds = $ormawas->pluck('id')->toArray();
@@ -112,19 +116,45 @@ class MahasiswaFeaturesController extends Controller
             $buktiFotoPath = $this->compressAndStoreImage($request->file('bukti_foto'), 'bukti_kehadiran');
         }
 
-        $keanggotaan = \App\Models\Keanggotaan::where('mahasiswa_id', $mahasiswa->id)->where('ormawa_id', $kegiatan->ormawa_id)->first();
-        if (!$keanggotaan) {
+        // Bungkus dalam transaksi untuk mencegah race condition double-submission
+        $created = DB::transaction(function () use ($validated, $mahasiswa, $kegiatan, $buktiFotoPath) {
+            $keanggotaan = \App\Models\Keanggotaan::where('mahasiswa_id', $mahasiswa->id)
+                ->where('ormawa_id', $kegiatan->ormawa_id)
+                ->first();
+
+            if (!$keanggotaan) {
+                return null;
+            }
+
+            // Cek sekali lagi di dalam transaksi untuk mencegah double-submit
+            $alreadyExists = Kehadiran::where('kegiatan_id', $kegiatan->id)
+                ->where('keanggotaan_id', $keanggotaan->id)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($alreadyExists) {
+                return false;
+            }
+
+            Kehadiran::create([
+                'kegiatan_id'       => $kegiatan->id,
+                'keanggotaan_id'    => $keanggotaan->id,
+                'status_kehadiran'  => $validated['status_kehadiran'],
+                'status_verifikasi' => 'Pending',
+                'keterangan'        => $validated['keterangan'],
+                'bukti_foto'        => $buktiFotoPath,
+            ]);
+
+            return true;
+        });
+
+        if ($created === null) {
             return redirect()->route('mahasiswa.riwayat')->with('error', 'Anda belum menjadi anggota Ormawa ini.');
         }
 
-        Kehadiran::create([
-            'kegiatan_id'     => $kegiatan->id,
-            'keanggotaan_id'  => $keanggotaan->id,
-            'status_kehadiran'=> $validated['status_kehadiran'],
-            'status_verifikasi' => 'Pending',
-            'keterangan'      => $validated['keterangan'],
-            'bukti_foto'      => $buktiFotoPath,
-        ]);
+        if ($created === false) {
+            return redirect()->route('mahasiswa.riwayat')->with('error', 'Anda sudah mencatat kehadiran untuk kegiatan ini.');
+        }
 
         return redirect()->route('mahasiswa.riwayat')->with('success', 'Kehadiran berhasil dicatat dan sedang menunggu verifikasi Pengurus.');
     }
@@ -303,6 +333,12 @@ class MahasiswaFeaturesController extends Controller
 
         if (!is_dir(dirname($destPath))) {
             mkdir(dirname($destPath), 0755, true);
+        }
+
+        // Jika ekstensi GD tidak tersedia, simpan file asli tanpa kompresi
+        if (!extension_loaded('gd')) {
+            $uploadedFile->storeAs($directory, $filename, 'local');
+            return $directory . '/' . $filename;
         }
 
         $sourcePath = $uploadedFile->getRealPath();

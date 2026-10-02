@@ -195,8 +195,28 @@
 
                         {{-- Pagination Ormawa --}}
                         @if($ormawas->hasPages())
-                        <div class="d-flex justify-content-center mt-4">
-                            {{ $ormawas->links() }}
+                        <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                            <small class="text-muted">
+                                Menampilkan {{ $ormawas->firstItem() }}–{{ $ormawas->lastItem() }} dari {{ $ormawas->total() }} ormawa
+                            </small>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+                                    {{-- Previous --}}
+                                    <li class="page-item {{ $ormawas->onFirstPage() ? 'disabled' : '' }}">
+                                        <a class="page-link" href="{{ $ormawas->previousPageUrl() }}">« Sebelumnya</a>
+                                    </li>
+                                    {{-- Page Numbers --}}
+                                    @foreach($ormawas->getUrlRange(1, $ormawas->lastPage()) as $page => $url)
+                                        <li class="page-item {{ $page == $ormawas->currentPage() ? 'active' : '' }}">
+                                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                        </li>
+                                    @endforeach
+                                    {{-- Next --}}
+                                    <li class="page-item {{ !$ormawas->hasMorePages() ? 'disabled' : '' }}">
+                                        <a class="page-link" href="{{ $ormawas->nextPageUrl() }}">Berikutnya »</a>
+                                    </li>
+                                </ul>
+                            </nav>
                         </div>
                         @endif
                     @endif

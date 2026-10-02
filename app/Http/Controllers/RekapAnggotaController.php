@@ -29,7 +29,8 @@ class RekapAnggotaController extends Controller
         $ormawa   = Auth::user()->ormawa;
         $students = $ormawa->mahasiswas()->with('pengguna')->get();
 
-        $kegiatanQuery    = Kegiatan::where('ormawa_id', $ormawaId);
+        $kegiatanQuery    = Kegiatan::where('ormawa_id', $ormawaId)
+            ->where('tanggal', '<=', now()->toDateString()); // hanya kegiatan yang sudah/sedang terjadi
         $totalKegiatan    = (clone $kegiatanQuery)->count();
         $totalPoinMaksimal = (clone $kegiatanQuery)->sum('poin');
         $rekapData        = [];

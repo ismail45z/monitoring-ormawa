@@ -20,6 +20,7 @@
             <option value="HMJ">HMJ</option>
             <option value="UKM">UKM</option>
             <option value="MPM">MPM</option>
+            <option value="KMK">KMK</option>
             <option value="Independen">Independen</option>
         </select>
         <small class="text-muted ms-1" id="ormawaCount"></small>
@@ -278,32 +279,59 @@
             setupCascadingDropdown('edit_jurusan_{{ $ormawa->id }}', 'edit_prodi_{{ $ormawa->id }}', '{{ $ormawa->kategori_prodi }}');
         @endforeach
 
-        // Initialize count on load
+    });
+
+    // Client-side filter menggunakan DataTables API (agar filter bekerja lintas halaman)
+    let ormawaTable = null;
+
+    // Layout (app.blade.php) sudah menginisialisasi DataTables lewat $(document).ready()
+    // Kita ambil referensi-nya setelah DOM ready
+    $(document).ready(function() {
+        if ($.fn.DataTable.isDataTable('.datatable')) {
+            ormawaTable = $('.datatable').DataTable();
+        }
+        // Jalankan filter awal untuk update counter
         filterOrmawa();
     });
 
-    // Client-side filter: Nama + Jenis
     function filterOrmawa() {
-        const searchVal = (document.getElementById('ormawaSearch')?.value || '').toLowerCase();
-        const jenisVal  = (document.getElementById('ormawaJenisFilter')?.value || '').toLowerCase();
-        const rows = document.querySelectorAll('.datatable tbody tr');
-        let visible = 0;
+        const searchVal = (document.getElementById('ormawaSearch')?.value || '').trim();
+        const jenisVal  = (document.getElementById('ormawaJenisFilter')?.value || '').trim();
 
-        rows.forEach(row => {
-            const nama  = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
-            const jenis = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
-            const matchSearch = !searchVal || nama.includes(searchVal);
-            const matchJenis  = !jenisVal  || jenis.includes(jenisVal);
-            if (matchSearch && matchJenis) {
-                row.style.display = '';
-                visible++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
+        // Gunakan DataTables API jika tersedia
+        if (ormawaTable) {
+            // Column 0 = Nama, Column 1 = Jenis (badge di dalam td)
+            ormawaTable.column(0).search(searchVal);
+            // Exact match untuk jenis (kolom 1), pakai regex agar tidak partial match antar jenis
+            ormawaTable.column(1).search(jenisVal ? '^' + jenisVal + '$' : '', true, false);
+            ormawaTable.draw();
 
-        const countEl = document.getElementById('ormawaCount');
-        if (countEl) countEl.textContent = `Menampilkan ${visible} dari ${rows.length} ormawa`;
+            // Update counter
+            setTimeout(() => {
+                const total = ormawaTable.rows().count();
+                const filtered = ormawaTable.rows({ search: 'applied' }).count();
+                const countEl = document.getElementById('ormawaCount');
+                if (countEl) countEl.textContent = `Menampilkan ${filtered} dari ${total} ormawa`;
+            }, 100);
+        } else {
+            // Fallback jika DataTables belum ready
+            const rows = document.querySelectorAll('.datatable tbody tr');
+            let visible = 0;
+            rows.forEach(row => {
+                const nama  = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+                const jenis = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+                const matchSearch = !searchVal || nama.toLowerCase().includes(searchVal.toLowerCase());
+                const matchJenis  = !jenisVal  || jenis.toLowerCase().includes(jenisVal.toLowerCase());
+                if (matchSearch && matchJenis) {
+                    row.style.display = '';
+                    visible++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            const countEl = document.getElementById('ormawaCount');
+            if (countEl) countEl.textContent = `Menampilkan ${visible} dari ${rows.length} ormawa`;
+        }
     }
 </script>
 @endsection
